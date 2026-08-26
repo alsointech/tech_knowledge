@@ -1,25 +1,26 @@
-const userInput = '<script>alert("hacked")</script>';
-const html = sanitize`<div>User said: ${userInput}</div>`;
-// Expected: <div>User said: &lt;script&gt;alert("hacked")&lt;/script&gt;</div>
+/**
+ * example #1 my own for to foreach
+*/
 
-function sanitize(strings, ...keys) {
+const arr = [1, 2, 3, 4, 5];
 
-    const sanitizedCharacters = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#x27;',
-        "/": '&#x2F;',
-    };
-    const reg = /[&<>"'/]/ig;
-    const result = [strings];
-    keys.forEach(e => {
-        const sanitizedInput = e.replace(reg, (match) => sanitizedCharacters[match]);
-        result.push(sanitizedIn
-            put)
-    });
-    return result.join("");
-}
+/* for (let i = 0; i < arr.length; i++) {
+  console.log(arr[i] * 10);
+}; */
 
-console.log(html);
+arr.forEach((value) => { console.log(value * 10) });
+
+/**
+ * example #2 async in foreach does not work
+*/
+const results = [5, 4, 8, 7];
+let sum = 0;
+
+const sumFunction = async (a, b) => a + b;
+
+results.forEach(async (result) => {
+  sum = await sumFunction(sum, result);
+});
+
+const avg = sum / results.length;
+console.log("avg: " + avg);
