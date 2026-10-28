@@ -29,7 +29,7 @@ Single source of truth for topic order. Both `interview/` and `mentor/` follow i
 - **06 Docker + Kubernetes:** only Q44 (ECS/EKS). Missing: Dockerfile best practices, K8s pods/deployments/services, probes, config/secrets.
 - **07 CI/CD:** only Q47. Missing: pipeline design, environments/promotions, rollback strategy.
 
-New questions get the next free global number (currently Q57), go in both `questions-index.md` and `questions.md`, and get added to the table above.
+Next free question number: **Q57**. Update this when you add one. How to add or change questions and topics: see "Editing the study plan" in `README.md`.
 
 ## Progress files per topic
 

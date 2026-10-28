@@ -7,6 +7,7 @@ Interview-prep workspace for a Senior Backend (Node.js) role. This root file is 
 | `interview/` | Adversarial interviewer, scored 0-10 |
 | `mentor/` | Supportive coach, no scores |
 | `hackerrank/` | DSA coach, complexity-first |
+| `curator/` | Question bank intake: files pasted questions into roadmap topics |
 
 If launched from the repo root itself, no persona is active: act as a normal coding assistant and suggest launching from one of the folders above for practice sessions.
 

@@ -1,6 +1,6 @@
 # tech_knowledge
 
-A personal Senior Backend Developer interview prep system powered by Claude Code. Three AI modes (interviewer, mentor, DSA coach), each chosen by the folder you launch `claude` from.
+A personal Senior Backend Developer interview prep system powered by Claude Code. Four modes (interviewer, mentor, DSA coach, question curator), each chosen by the folder you launch `claude` from.
 
 ---
 
@@ -22,6 +22,7 @@ Claude Code loads the `CLAUDE.md` in the folder you launch from **and every `CLA
 | `tech_knowledge/interview/` | Adversarial interviewer: devil's advocate, scored 0-10 |
 | `tech_knowledge/mentor/` | Supportive senior coach: explains concepts, Socratic method |
 | `tech_knowledge/hackerrank/` | DSA challenge coach: complexity-first, hint ladder |
+| `tech_knowledge/curator/` | Question bank intake: paste questions, it files them into roadmap topics |
 
 Run `/memory` inside a session to see which CLAUDE.md files were loaded. Start a new session (or a new terminal) when switching modes.
 
@@ -33,8 +34,8 @@ Run `/memory` inside a session to see which CLAUDE.md files were loaded. Start a
 tech_knowledge/
 ├── CLAUDE.md                    # Shared context only (no persona)
 ├── roadmap.md                   # Topic order + question mapping (linear)
-├── questions-index.md           # Question bank (Q1–Q56)
-├── questions.md                 # Rubrics and reference solutions (read per question, never whole)
+├── questions-index.md           # Question sheet: questions + code challenges, no answers (Q1–Q56)
+├── questions.md                 # Answer key: expected answers, solutions, rubrics (read per question, never whole)
 │
 ├── interview/
 │   ├── CLAUDE.md                # Interviewer persona
@@ -44,6 +45,9 @@ tech_knowledge/
 │   ├── CLAUDE.md                # Mentor persona
 │   ├── index.js                 # Your scratch file for mentor sessions
 │   └── notes/{NN-topic}.md      # Mastery notes per roadmap topic
+│
+├── curator/
+│   └── CLAUDE.md                # Question bank intake
 │
 ├── hackerrank/
 │   ├── CLAUDE.md                # DSA coach persona
@@ -69,6 +73,7 @@ Open one VS Code terminal per mode (WSL):
 cd ~/projects/tech_knowledge/interview && claude    # interviewer
 cd ~/projects/tech_knowledge/mentor && claude       # mentor
 cd ~/projects/tech_knowledge/hackerrank && claude   # DSA drill
+cd ~/projects/tech_knowledge/curator && claude      # add questions
 ```
 
 Use the terminal for this. The Claude Code chat panel in VS Code starts in the workspace folder (`tech_knowledge/`), which has no persona. To use the panel instead, open the mode's subfolder as the VS Code workspace.
@@ -84,6 +89,7 @@ Claude doesn't speak first. After launching, send a first message such as `start
 | Interviewer | `retry Q{N}` | Re-asks a failed question; the newest entry counts |
 | Mentor | `start` | Reads `roadmap.md` + `mentor/notes/`, offers to resume where you left off |
 | Mentor | `explain {concept}` | Jumps to any concept, out of order |
+| Curator | paste one or more questions | Classifies each into a roadmap topic (splitting multi-topic ones), shows a table, writes after you approve |
 | HackerRank | paste a problem into `hackerrank/index.js`, then `check` | Coaching via the hint ladder; every solution needs a complexity comment |
 
 ---
@@ -221,6 +227,28 @@ function twoSum(nums, target) {
 
 ---
 
+## Editing the study plan
+
+How the pieces connect:
+
+- `roadmap.md`: the row order is the study order. The `Questions` column lists the global question numbers in each topic, and the `Progress files` column names its files.
+- Saved answers are matched by question number. A question counts as answered when its topic's answer file has a `## QN:` entry.
+- Claude finds a question by searching for `### Question N: Title`, so that header must be identical in `questions-index.md` and `questions.md`.
+- The `# SECTION` headings in the question files are cosmetic. Nothing reads them.
+
+| To... | Do this |
+| --- | --- |
+| **Add a question** | Use the next free number (check the TODO list in `roadmap.md`), and never reuse or renumber one. Add `### Question N: Title` with the question and code challenge to `questions-index.md`. Add the same header with the expected answer, solution and evaluation criteria to `questions.md`. Add `QN` to the topic's row in `roadmap.md`. |
+| **Change a question** | Edit it in both files, keeping the same number and header. If you already answered it, type `retry QN` in `interview/` to redo it. |
+| **Add a topic** | Add a row to `roadmap.md` with a new id such as `10-graphql`. Create `solutions/answers/10-graphql.md` and `mentor/notes/10-graphql.md` (one title line each) and `solutions/10-graphql/.gitkeep`. |
+| **Reorder topics** | Move rows in `roadmap.md`. The number prefix is only an id, so don't rename files. |
+| **Move a question to another topic** | Move `QN` between rows in `roadmap.md`. If it's already answered, also move its `## QN:` entry and its `qNN-*.js` file into the new topic's files, or it will be asked again. |
+| **Remove a topic or question** | Delete it from `roadmap.md`. Keep its answer files as history. |
+
+Shortcut: use the curator mode (`cd curator && claude`) and paste your questions. It applies these rules for you. A question that mixes topics is split if its parts are independent, or placed in the latest roadmap topic it depends on if it's one combined problem.
+
+---
+
 ## Progress files
 
 | File | What it stores | Created by |
@@ -238,6 +266,7 @@ All files persist across sessions. They are your long-term progress record regar
 
 1. **Don't understand a concept** → `cd mentor && claude` → `explain closures`
 2. **Ready to test yourself** → `cd interview && claude` → `start` (picks up where you left off)
-3. **Want to drill an algorithm** → `cd hackerrank && claude` → paste the problem into `index.js`, then `check`
+3. **Have new questions to study** → `cd curator && claude` → paste them
+4. **Want to drill an algorithm** → `cd hackerrank && claude` → paste the problem into `index.js`, then `check`
 
 Don't switch modes inside a running session: exit (`/exit`) and launch `claude` again from the other folder, so the old persona doesn't carry over.
