@@ -10,13 +10,16 @@
 ## 1.1 ES6+ Features
 
 ### Question 1: Variable Declarations
-**Question:** Explain the differences between `var`, `let`, and `const`. What is hoisting, and how does it affect each declaration type?
+**Question:** Explain the differences between `var`, `let`, and `const`. What is hoisting, and how does it affect each declaration type? How are function declarations hoisted compared to function expressions and arrow functions?
 
 **Expected Answer:**
 - `var`: Function-scoped, hoisted (initialized as `undefined`), can be redeclared
 - `let`: Block-scoped, hoisted but not initialized (Temporal Dead Zone), cannot be redeclared
 - `const`: Block-scoped, hoisted but not initialized (TDZ), cannot be reassigned (but objects/arrays can be mutated)
 - Hoisting moves declarations to the top of their scope during compilation
+- Function declarations are hoisted **with their body**, so they can be called before they appear
+- Function expressions and arrow functions follow their variable's rules: with `var` the name is `undefined` (calling it gives `TypeError: ... is not a function`); with `let`/`const` it's in the TDZ (`ReferenceError`)
+- `class` declarations are hoisted like `let` (TDZ)
 
 **Code Challenge:**
 ```javascript
@@ -33,6 +36,12 @@ for (var i = 0; i < 3; i++) {
 for (let j = 0; j < 3; j++) {
   setTimeout(() => console.log(j), 100);
 }
+
+// Also predict:
+sayHi();  // ?
+sayBye(); // ?
+function sayHi() { console.log('hi'); }
+var sayBye = function () { console.log('bye'); };
 ```
 
 **Expected Output & Explanation:**
@@ -41,12 +50,15 @@ for (let j = 0; j < 3; j++) {
 // console.log(b) → ReferenceError (let is in TDZ)
 // First loop: 3, 3, 3 (var is function-scoped, same reference)
 // Second loop: 0, 1, 2 (let creates new binding per iteration)
+// sayHi()  → 'hi' (function declaration hoisted with its body)
+// sayBye() → TypeError: sayBye is not a function (var hoisted as undefined)
 ```
 
 **Evaluation Criteria:**
 - Understanding of scope (block vs function)
 - Knowledge of Temporal Dead Zone
 - Practical implications in loops with closures
+- Distinguishes declaration hoisting from expression/arrow hoisting
 
 ---
 
@@ -441,7 +453,7 @@ console.log(person.firstName); // 'Jane'
 ## 1.4 Classes & Prototypes
 
 ### Question 9: Classes & Inheritance
-**Question:** Explain JavaScript classes, inheritance, and how they relate to prototypes. What's the difference between class syntax and prototypal inheritance?
+**Question:** Explain JavaScript classes, inheritance, and how they relate to prototypes. What's the difference between class syntax and prototypal inheritance? What are the four pillars of OOP (encapsulation, abstraction, inheritance, polymorphism) and how does each look in JavaScript?
 
 **Expected Answer:**
 - Classes are syntactic sugar over prototype-based inheritance
@@ -450,6 +462,11 @@ console.log(person.firstName); // 'Jane'
 - `static` methods belong to class, not instances
 - Private fields with `#` prefix
 - Prototype chain: instance → Class.prototype → Parent.prototype → Object.prototype
+- **Four pillars of OOP:**
+    - Encapsulation: hide internal state behind methods (`#private` fields, closures)
+    - Abstraction: expose a simple interface (`process()`), hide how it works; JS has no `abstract` keyword, so a base method throws `new Error('not implemented')`
+    - Inheritance: reuse behavior through `extends`/prototype chain; prefer composition when the hierarchy gets deep
+    - Polymorphism: same call, different behavior (`payment.validate()` works for any subclass); in JS it's mostly duck typing plus method overriding
 
 **Code Challenge:**
 ```javascript
@@ -459,6 +476,7 @@ console.log(person.firstName); // 'Jane'
 // 3. PayPalPayment extends Payment: email, validate()
 // 4. Use private fields where appropriate
 // 5. Add a static method to track total processed payments
+// 6. Point out where your solution shows each of the four OOP pillars
 ```
 
 **Expected Solution:**
@@ -536,7 +554,19 @@ cc.process();
 const pp = new PayPalPayment(50, 'user@example.com');
 pp.process();
 console.log(Payment.getTotalProcessed()); // 150
+
+// 6. Pillars in this solution:
+// - Encapsulation: #amount, #status, #cardNumber can't be touched from outside
+// - Abstraction: callers only use process(); validation details stay inside
+// - Inheritance: CreditCardPayment/PayPalPayment extend Payment
+// - Polymorphism: process() calls this.validate(), which resolves to the subclass version
 ```
+
+**Evaluation Criteria:**
+- Knows classes are sugar over prototypes
+- Uses private fields and static members correctly
+- Names the four OOP pillars and maps each one to concrete code
+- Knows when to prefer composition over inheritance
 
 ---
 
@@ -4988,7 +5018,7 @@ if (config.isProduction) {
 ## 3.8 Package Management & Versioning
 
 ### Question 36: NPM & Semantic Versioning
-**Question:** Explain semantic versioning (semver) in Node.js. How do `package.json` and `package-lock.json` work? What's the difference between `dependencies` and `devDependencies`?
+**Question:** Explain semantic versioning (semver) in Node.js. How do `package.json` and `package-lock.json` work? What's the difference between `dependencies`, `devDependencies`, `peerDependencies` and `optionalDependencies`?
 
 **Expected Answer:**
 - **Semver format:** MAJOR.MINOR.PATCH (1.2.3)
@@ -5001,7 +5031,10 @@ if (config.isProduction) {
     - `1.2.3` - Exact version
 - **package-lock.json:** Locks exact versions of entire dependency tree
 - **dependencies:** Required for production
-- **devDependencies:** Only needed for development
+- **devDependencies:** Only needed for development (`npm ci --omit=dev` skips them in production)
+- **peerDependencies:** "the host app must provide this". Used by plugins/libraries (React components, ESLint plugins) so the app doesn't end up with two copies. npm 7+ installs peers automatically and fails with `ERESOLVE` on conflicts (`--legacy-peer-deps` restores the old behavior). Use `peerDependenciesMeta` to mark one optional
+- **optionalDependencies:** install failure doesn't fail `npm install` (e.g. native add-ons); code must handle the module being missing
+- **bundleDependencies:** packed into the tarball when you publish
 
 **Code Challenge:**
 ```javascript
@@ -5020,6 +5053,7 @@ if (config.isProduction) {
 }
 
 // Also: Create a publishable NPM package with proper structure
+// Also: you publish a React component library. Where does `react` go in its package.json, and why?
 ```
 
 **Expected Solution:**
@@ -5171,7 +5205,20 @@ doSomething();
 // TypeScript (with types)
 import { doSomething, SomeInterface } from '@myorg/my-awesome-package';
 const result: SomeInterface = doSomething();
+
+// ============ peerDependencies (React component library) ============
+{
+    "name": "@myorg/ui-kit",
+    "peerDependencies": { "react": "^18.0.0 || ^19.0.0" }, // the app provides React
+    "devDependencies": { "react": "^19.0.0" }               // so the library's own tests can run
+}
+// Putting react in "dependencies" could install a second copy → "Invalid hook call" errors
 ```
+
+**Evaluation Criteria:**
+- Reads ^, ~ and exact ranges correctly
+- Knows the lockfile's role and `npm ci` vs `npm install`
+- Places packages in the right dependency section, peerDependencies included
 
 ---
 
@@ -9706,7 +9753,7 @@ async function runSerializable(work, retries = 3) {
 ## 7.2 Redis
 
 ### Question 56: Redis Data Structures & Caching Patterns
-**Question:** What is Redis and why is it fast? Explain its core data structures and when to use each. Compare cache-aside, write-through, and write-behind. How do you handle cache invalidation, stampedes, and eviction?
+**Question:** What is Redis and why is it fast? Explain its core data structures and when to use each. Compare cache-aside, write-through, and write-behind. How do you handle cache invalidation, stampedes, and eviction? Why is Redis a common session store, and how do you implement one?
 
 **Expected Answer:**
 - **Why fast:** in-memory, single-threaded command execution (no locks; I/O threads optional since 6.0), efficient encodings. Every command is atomic; a slow command (`KEYS *`, big `SMEMBERS`) blocks everyone, so use `SCAN`.
@@ -9719,6 +9766,7 @@ async function runSerializable(work, retries = 3) {
 - **Invalidation:** TTL on every key; delete (not update) the key on writes; versioned keys.
 - **Stampede:** lock with `SET key NX PX` so only one caller rebuilds, plus stale-while-revalidate or TTL jitter.
 - **Eviction:** `maxmemory` + policy (`allkeys-lru`, `allkeys-lfu`, `volatile-ttl`, `noeviction`).
+- **Session store:** sessions need fast key lookup, shared state across all app instances (so no sticky sessions), and automatic expiry → a Redis key `sess:{id}` with TTL. Sliding expiration = refresh the TTL on each read. Logout = `DEL`. With `express-session`, use `connect-redis`. The cookie holds only the random session id (`HttpOnly`, `Secure`, `SameSite`).
 - **Scaling:** replicas + Sentinel for HA; Redis Cluster shards 16384 hash slots (multi-key ops need the same slot, via `{hashtag}`).
 
 **Expected Solution:**
@@ -9781,6 +9829,22 @@ async function top10() {
   }
   return result;
 }
+
+// 5. Session store
+const crypto = require('crypto');
+const SESSION_TTL = 60 * 30; // 30 min sliding
+async function createSession(data) {
+  const id = crypto.randomBytes(32).toString('hex');
+  await redis.set(`sess:${id}`, JSON.stringify(data), 'EX', SESSION_TTL);
+  return id; // goes into an HttpOnly, Secure cookie
+}
+async function getSession(id) {
+  const raw = await redis.getex(`sess:${id}`, 'EX', SESSION_TTL); // read + refresh TTL (Redis 6.2+)
+  return raw ? JSON.parse(raw) : null;
+}
+async function destroySession(id) {
+  await redis.del(`sess:${id}`);
+}
 ```
 
 **Evaluation Criteria:**
@@ -9789,7 +9853,2966 @@ async function top10() {
 - Knows stampede mitigations (lock, jitter, stale-while-revalidate)
 - Knows eviction policies and that blocking commands hurt everyone
 - Atomicity: MULTI/Lua for multi-step operations
+- Session store: random id in the cookie, data in Redis with sliding TTL, delete on logout
 
 ---
 
 *End of Section 7: Databases — PostgreSQL, MySQL & Redis*
+
+# SECTION 8: Added — 2026-10-28
+
+---
+
+## 8.1 JavaScript
+
+### Question 57: Counting Vowels & Consonants
+**Question:** Write a function that takes a string as its only argument and returns an object with the number of vowels and consonants. How do you handle case, accents, spaces, digits and punctuation? What's the complexity?
+
+**Expected Answer:**
+- Normalize first: `toLowerCase()`, then `normalize('NFD').replace(/\p{Diacritic}/gu, '')` (or `/[̀-ͯ]/g`) so `á` counts as `a`
+- Count only letters: a char is a consonant only if it's a letter and not a vowel (`/\p{L}/u` or `/[a-z]/`), so spaces, digits and punctuation are ignored
+- Decide on edge cases and say so: `y`, `ñ` (a consonant, but NFD turns it into `n` + tilde, which is still fine), empty string, non-string input (throw `TypeError`)
+- Use a `Set` for vowel lookup: O(1) per char, O(n) time overall, O(1) extra space
+- A single loop beats `match()` twice for very long strings, but both are O(n); readability usually wins
+
+**Code Challenge:**
+```javascript
+// 1. count('gato') → { vowels: 2, consonants: 2 }
+// 2. Make it case-insensitive and ignore spaces, digits and punctuation: count('Hola, Mundo 2024!')
+// 3. Treat accented vowels as vowels: count('canción') → { vowels: 3, consonants: 4 }
+// 4. Write a second version with reduce (or regex) and compare readability and complexity
+```
+
+**Expected Solution:**
+```javascript
+const VOWELS = new Set(['a', 'e', 'i', 'o', 'u']);
+
+function count(str) {
+  if (typeof str !== 'string') throw new TypeError('Expected a string');
+  const clean = str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  const result = { vowels: 0, consonants: 0 };
+  for (const ch of clean) {
+    if (VOWELS.has(ch)) result.vowels++;
+    else if (ch >= 'a' && ch <= 'z') result.consonants++;
+  }
+  return result;
+}
+
+count('gato');              // { vowels: 2, consonants: 2 }
+count('Hola, Mundo 2024!'); // { vowels: 4, consonants: 5 }
+count('canción');           // { vowels: 3, consonants: 4 }
+
+// 4. Regex version: shorter, also O(n) (two passes)
+const countRegex = (str) => {
+  const clean = str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return {
+    vowels: (clean.match(/[aeiou]/g) || []).length,
+    consonants: (clean.match(/[b-df-hj-np-tv-z]/g) || []).length,
+  };
+};
+
+// reduce version
+const countReduce = (str) =>
+  [...str.toLowerCase().normalize('NFD')].reduce((acc, ch) => {
+    if (VOWELS.has(ch)) acc.vowels++;
+    else if (/[a-z]/.test(ch)) acc.consonants++;
+    return acc;
+  }, { vowels: 0, consonants: 0 });
+```
+
+**Evaluation Criteria:**
+- Correct output for the basic case
+- Ignores non-letters instead of counting them as consonants
+- Handles case and accents (normalize NFD)
+- States O(n) time, O(1) space; uses a Set or regex instead of nested loops
+- Validates input
+
+---
+
+### Question 58: Data Types, null vs undefined & Symbol
+**Question:** What data types exist in JavaScript? Which are primitives and which are structural? What's the difference between `null` and `undefined`? What is `Symbol` used for?
+
+**Expected Answer:**
+- **7 primitives:** `string`, `number`, `bigint`, `boolean`, `undefined`, `null`, `symbol`. Immutable, compared by value
+- **Structural:** `Object` and everything built on it: arrays, functions, Date, Map/Set, RegExp, class instances. Compared by reference
+- `typeof null === 'object'` is a historical bug; `typeof function` is `'function'`; arrays need `Array.isArray`
+- **undefined:** "no value assigned yet". Set by the engine: uninitialized variables, missing properties, missing arguments, functions without `return`
+- **null:** "intentionally empty". Set by the developer
+- `null == undefined` is `true`, `===` is `false`. Default parameters and destructuring defaults apply to `undefined` only, not `null`. `??` treats both as missing. JSON keeps `null` but drops `undefined` keys
+- **Symbol:** a unique, non-string property key. Uses:
+    - collision-free keys / "hidden" metadata (skipped by `Object.keys`, `for...in`, `JSON.stringify`; still visible with `Object.getOwnPropertySymbols`, so not private)
+    - well-known symbols to hook into the language: `Symbol.iterator`, `Symbol.asyncIterator`, `Symbol.toPrimitive`, `Symbol.hasInstance`
+    - `Symbol.for(key)` for a global registry shared across modules
+- Wrapper objects (`new String('x')`) exist but shouldn't be used
+
+**Code Challenge:**
+```javascript
+// 1. Predict the output:
+typeof null;            // ?
+typeof undefined;       // ?
+typeof NaN;             // ?
+typeof [];              // ?
+typeof function () {};  // ?
+typeof Symbol('id');    // ?
+typeof 10n;             // ?
+null == undefined;      // ?
+null === undefined;     // ?
+
+// 2. Write getType(value) that returns 'null', 'array', 'date', 'object', 'string', etc.
+// 3. Use a Symbol to add a hidden metadata key to an object that doesn't show up in JSON.stringify or Object.keys
+// 4. Make a class iterable with Symbol.iterator
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+typeof null;            // 'object' (legacy bug)
+typeof undefined;       // 'undefined'
+typeof NaN;             // 'number'
+typeof [];              // 'object'
+typeof function () {};  // 'function'
+typeof Symbol('id');    // 'symbol'
+typeof 10n;             // 'bigint'
+null == undefined;      // true
+null === undefined;     // false
+
+// 2.
+function getType(value) {
+  return Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
+}
+getType(null);       // 'null'
+getType([]);         // 'array'
+getType(new Date()); // 'date'
+getType({});         // 'object'
+
+// 3.
+const META = Symbol('meta');
+const user = { name: 'Ana', [META]: { loadedAt: Date.now() } };
+Object.keys(user);     // ['name']
+JSON.stringify(user);  // '{"name":"Ana"}'
+user[META].loadedAt;   // still accessible with the symbol
+
+// 4.
+class Playlist {
+  #songs = [];
+  add(song) { this.#songs.push(song); return this; }
+  *[Symbol.iterator]() { yield* this.#songs; }
+}
+const p = new Playlist().add('a').add('b');
+console.log([...p]); // ['a', 'b']
+```
+
+**Evaluation Criteria:**
+- Lists all 7 primitives, including bigint and symbol
+- Explains null vs undefined as intent (developer vs engine), plus the default-parameter and JSON differences
+- Knows typeof quirks and a reliable type check
+- Gives real Symbol uses (well-known symbols, collision-free keys), and knows symbols aren't truly private
+
+---
+
+### Question 59: Primitives vs References: Memory & Mutability
+**Question:** How is memory managed for primitive values compared to objects/arrays (stack vs heap, copy by value vs by reference)? What is mutability, and why does it matter? Is JavaScript pass-by-value or pass-by-reference? How does garbage collection work?
+
+**Expected Answer:**
+- **Mental model:** primitives are copied by value. Objects live on the heap, and variables hold a reference to them. Assigning an object copies the reference, not the object. (Engines optimize this, e.g. small integers stored inline, but the model is what matters.)
+- **Pass-by-value always:** for objects, the value passed is the reference ("call by sharing"). Mutating `obj.x` inside a function is visible outside; reassigning `obj = {}` is not
+- **Mutability:** primitives are immutable (`str.toUpperCase()` returns a new string). Objects/arrays are mutable unless frozen. `const` prevents rebinding, not mutation
+- **Why it matters:** shared mutable state causes bugs that are hard to trace (a function quietly changing its input), React/Redux change detection relies on new references, and concurrency in async code makes it worse
+- **Copies:** spread / `Object.assign` are shallow (nested objects are shared). `structuredClone` does a deep copy (not functions/classes). `JSON.parse(JSON.stringify())` loses Dates, undefined, Map
+- **GC:** V8 uses mark-and-sweep from roots (global, stack, closures), generational (young generation "scavenge" + old generation mark-compact). An object is collected when it's unreachable. Reference cycles aren't a problem
+- **Leaks:** something reachable that you don't need: globals, growing caches/Maps, unremoved listeners/timers, closures holding big objects. Use `WeakMap`/`WeakRef` for caches keyed by objects
+
+**Code Challenge:**
+```javascript
+// 1. Predict the output and explain:
+let a = 10;
+let b = a;
+b++;
+console.log(a, b); // ?
+
+const user1 = { name: 'Ana', tags: ['admin'] };
+const user2 = user1;
+const user3 = { ...user1 };
+user2.name = 'Luis';
+user3.tags.push('editor');
+console.log(user1); // ?
+
+function reassign(obj) { obj = { name: 'new' }; }
+function mutate(obj) { obj.name = 'mutated'; }
+reassign(user1); mutate(user1);
+console.log(user1.name); // ?
+
+// 2. Write an updateUser(user, changes) that returns a new object without mutating the input (nested address included)
+// 3. Show a memory leak caused by a reference that is never released, and fix it
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+// 10 11 → numbers copied by value
+// { name: 'Luis', tags: ['admin', 'editor'] }
+//   user2 is the same object; user3 is a shallow copy that shares the tags array
+// 'mutated' → reassign only changed the local parameter; mutate changed the shared object
+
+// 2.
+function updateUser(user, changes) {
+  return {
+    ...user,
+    ...changes,
+    address: { ...user.address, ...changes.address },
+  };
+}
+// or: const copy = structuredClone(user); then apply changes to the copy
+
+// 3. Leak: listener added per request, never removed, closure keeps big data alive
+const EventEmitter = require('events');
+const bus = new EventEmitter();
+function handleRequest(req) {
+  const bigPayload = Buffer.alloc(10 * 1024 * 1024);
+  bus.on('tick', () => console.log(bigPayload.length)); // grows forever
+}
+// Fix: remove it when done (or use once / AbortSignal)
+function handleRequestFixed(req) {
+  const bigPayload = Buffer.alloc(10 * 1024 * 1024);
+  const onTick = () => console.log(bigPayload.length);
+  bus.on('tick', onTick);
+  req.on('close', () => bus.off('tick', onTick));
+}
+// Same idea for caches: use a bounded LRU, or a WeakMap keyed by the object
+```
+
+**Evaluation Criteria:**
+- Correct predictions, including the shared nested array after spread
+- Says "pass by value of the reference", not "pass by reference"
+- Distinguishes `const` from immutability
+- Knows shallow vs deep copy options and their limits
+- Explains reachability-based GC and gives a realistic leak plus fix
+
+---
+
+### Question 60: Function Types, IIFE & call/apply/bind
+**Question:** What kinds of functions exist in JavaScript (declarations, expressions, arrow, methods, constructors, async, generators)? What is an IIFE and why was it used? What do `call`, `apply` and `bind` do, and when would you use each?
+
+**Expected Answer:**
+- **Declaration** (hoisted with body), **expression** (named or anonymous, follows variable hoisting), **arrow** (no own `this`/`arguments`/`super`/`new.target`, can't be a constructor, concise body), **method shorthand** (has `super`), **constructor**/`class`, **async** (returns a Promise), **generator** (`function*`), async generator, `new Function()` (avoid)
+- Functions are first-class objects: they can be passed, returned, stored, and they have properties (`name`, `length`)
+- **IIFE** `(function () { ... })()`: runs immediately and creates a private scope. Before ES modules and `let`, it was the way to avoid polluting globals and to build the module pattern. Still used for top-level `async` in CommonJS: `(async () => { ... })()`
+- **call(thisArg, a, b):** invoke now with explicit `this` and listed args
+- **apply(thisArg, [a, b]):** same, args as an array (mostly replaced by spread)
+- **bind(thisArg, a):** returns a new function with `this` fixed and optional preset args (partial application). Used for callbacks that lose `this` (`setTimeout`, event handlers). Bound `this` can't be changed again, and arrow functions ignore it
+- Function borrowing: `Array.prototype.slice.call(arguments)`; today use `Array.from`
+
+**Code Challenge:**
+```javascript
+// 1. Write a counter module with an IIFE that exposes increment() and getCount() but hides the count
+// 2. Borrow Array.prototype methods with call/apply on an array-like object ({ 0: 'a', 1: 'b', length: 2 })
+// 3. Find the max of an array using Math.max with apply, then with spread
+// 4. Fix the lost `this` in: setTimeout(user.greet, 100) using bind
+// 5. Implement your own Function.prototype.myBind (with partial application)
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+const counter = (function () {
+  let count = 0;
+  return {
+    increment: () => ++count,
+    getCount: () => count,
+  };
+})();
+
+// 2.
+const arrayLike = { 0: 'a', 1: 'b', length: 2 };
+Array.prototype.map.call(arrayLike, (s) => s.toUpperCase()); // ['A', 'B']
+Array.prototype.join.apply(arrayLike, ['-']);                 // 'a-b'
+
+// 3.
+const nums = [3, 9, 2];
+Math.max.apply(null, nums); // 9
+Math.max(...nums);          // 9 (large arrays: use reduce to avoid arg limits)
+
+// 4.
+const user = { name: 'Ana', greet() { console.log(`Hi ${this.name}`); } };
+setTimeout(user.greet.bind(user), 100);
+// or: setTimeout(() => user.greet(), 100);
+
+// 5.
+Function.prototype.myBind = function (thisArg, ...preset) {
+  const fn = this;
+  function bound(...later) {
+    // when called with new, ignore thisArg (like native bind)
+    const ctx = this instanceof bound ? this : thisArg;
+    return fn.apply(ctx, [...preset, ...later]);
+  }
+  bound.prototype = Object.create(fn.prototype);
+  return bound;
+};
+const add = (a, b, c) => a + b + c;
+add.myBind(null, 1, 2)(3); // 6
+```
+
+**Evaluation Criteria:**
+- Names the function kinds and the arrow-function differences
+- Explains why IIFEs existed and that modules/block scope replaced them
+- Clear call vs apply vs bind distinction, with real use cases
+- Working bind polyfill with partial application (handling `new` is a bonus)
+
+---
+
+### Question 61: Generators & Iterators
+**Question:** What is a generator function? How does `yield` work, and how do generators relate to the iteration protocol? When would you use a generator in a real backend? What are async generators?
+
+**Expected Answer:**
+- `function*` returns a generator object without running the body. Each `next()` runs until the next `yield`, then pauses and keeps its local state
+- `next()` returns `{ value, done }`. `next(x)` sends `x` back in as the result of the `yield` expression. `return()` and `throw()` end it from outside
+- Generators implement both the **iterator** protocol (`next`) and the **iterable** protocol (`[Symbol.iterator]` returns itself), so they work with `for...of`, spread and destructuring
+- `yield*` delegates to another iterable
+- **Use cases:** lazy/infinite sequences, processing big data without loading it all, custom iterables for data structures, ID generators, step-by-step state machines. Historically: async flow before async/await (co, redux-saga)
+- **Async generators** (`async function*`) yield promises and are consumed with `for await...of`: paginated APIs, reading streams line by line, DB cursors. Node readable streams are async iterables
+- Lazy evaluation means you only pay for what you consume; with `break` the generator's `finally` still runs (cleanup)
+
+**Code Challenge:**
+```javascript
+// 1. Write an idGenerator() that yields 1, 2, 3, ... forever, and take the first 5 values
+// 2. Write a range(start, end, step) generator usable in for...of
+// 3. Write a lazy pipeline: take(filter(map(naturals(), x => x * 2), x => x % 3 === 0), 5)
+// 4. Write an async generator that pages through an API (page 1, 2, ... until empty) and consume it with for await...of
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+function* idGenerator() {
+  let id = 1;
+  while (true) yield id++;
+}
+const ids = idGenerator();
+const first5 = Array.from({ length: 5 }, () => ids.next().value); // [1,2,3,4,5]
+
+// 2.
+function* range(start, end, step = 1) {
+  for (let i = start; i < end; i += step) yield i;
+}
+for (const n of range(0, 10, 3)) console.log(n); // 0 3 6 9
+
+// 3.
+function* naturals() { let n = 1; while (true) yield n++; }
+function* map(it, fn) { for (const x of it) yield fn(x); }
+function* filter(it, fn) { for (const x of it) if (fn(x)) yield x; }
+function* take(it, n) {
+  if (n <= 0) return;
+  for (const x of it) { yield x; if (--n === 0) return; }
+}
+[...take(filter(map(naturals(), x => x * 2), x => x % 3 === 0), 5)]; // [6, 12, 18, 24, 30]
+
+// 4.
+async function* fetchAllUsers(baseUrl) {
+  let page = 1;
+  while (true) {
+    const res = await fetch(`${baseUrl}/users?page=${page}`);
+    const users = await res.json();
+    if (users.length === 0) return;
+    yield* users;
+    page++;
+  }
+}
+(async () => {
+  for await (const user of fetchAllUsers('https://api.example.com')) {
+    console.log(user.id);
+  }
+})();
+```
+
+**Evaluation Criteria:**
+- Explains pause/resume and the `{ value, done }` protocol
+- Connects generators to iterables (`for...of`, spread)
+- Gives backend use cases (lazy data, pagination, streams), not just toy examples
+- Uses async generators with `for await...of` correctly
+
+---
+
+## 8.2 Node.js
+
+### Question 62: NPM Scripts, npx & Node Version Managers
+**Question:** How do npm scripts work? When do you need `npm run` and when not (`npm start`, `npm test`)? What are `pre`/`post` scripts and lifecycle hooks? What is `npx` for? How do you force a transitive dependency version (`overrides`/`resolutions`)? What are nvm and `n`, and how do they differ?
+
+**Expected Answer:**
+- Scripts live in `package.json` `"scripts"` and run in a shell with `node_modules/.bin` added to `PATH`, so local CLIs (jest, eslint) work without global installs
+- **`run` is optional** for built-in aliases: `npm start`, `npm test` (`npm t`), `npm stop`, `npm restart`. Every custom script needs `npm run <name>`. `npm run` with no name lists scripts
+- **pre/post:** `npm run build` runs `prebuild` → `build` → `postbuild` automatically. Lifecycle hooks: `preinstall`, `install`, `postinstall`, `prepare` (runs on install and before publish; used for husky), `prepublishOnly`. pnpm and Yarn Berry don't run arbitrary pre/post by default, so explicit chaining is more portable
+- **Args:** `npm test -- --watch` passes `--watch` to the script's command. Env: `npm_package_version`, `npm_lifecycle_event`
+- **Chaining:** `&&` sequential, `npm-run-all`/`concurrently` for parallel; `cross-env` for env vars on Windows
+- **npx:** runs a package binary, local if installed, otherwise downloads it to a temporary cache (`npx create-vite`, `npx prisma migrate`). Avoids global installs and version drift. Watch out for typosquatting
+- **Force versions:** npm `overrides` (8.3+), Yarn `resolutions`, pnpm `pnpm.overrides`. Used for security patches in transitive deps. Document why, and remove once upstream fixes it
+- **nvm:** shell script, installs versions per user, `.nvmrc` + `nvm use`, per-shell switching. **n:** npm package, simpler, switches the global node binary (needs write access to its prefix). Alternatives: fnm, volta (auto-switch per project). Pin with `.nvmrc` and `"engines"` (with `engine-strict`)
+
+**Code Challenge:**
+```javascript
+// Write the package.json "scripts" (and other fields) for:
+// 1. start, dev (nodemon), test, lint and build scripts
+// 2. A "prebuild" that cleans dist/ and a "postbuild" that copies assets
+// 3. Passing extra arguments to a script (run jest in watch mode from the test script)
+// 4. Force every copy of "minimist" in the dependency tree to 1.2.8
+// 5. Pin the Node version for the project (.nvmrc + "engines")
+// Also: run a CLI tool once without installing it globally
+```
+
+**Expected Solution:**
+```javascript
+// package.json
+{
+  "name": "orders-api",
+  "engines": { "node": ">=20 <23" },
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon --watch src src/server.ts",
+    "prebuild": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "cp -r src/templates dist/templates",
+    "test": "jest",
+    "test:watch": "npm test -- --watch",
+    "lint": "eslint .",
+    "prepare": "husky"
+  },
+  "overrides": {
+    "minimist": "1.2.8"
+  }
+  // Yarn: "resolutions": { "**/minimist": "1.2.8" }
+}
+
+// .nvmrc
+// 20
+
+// Shell:
+// npm start                 (no "run" needed)
+// npm run build             (runs prebuild → build → postbuild)
+// npm test -- --coverage    (extra args after --)
+// nvm install && nvm use    (reads .nvmrc)
+// npx npm-check-updates     (run once without installing globally)
+```
+
+**Evaluation Criteria:**
+- Knows which scripts need `run` and how pre/post hooks chain
+- Knows `node_modules/.bin` is on PATH and how to pass args with `--`
+- Explains npx and why it's better than global installs
+- Knows overrides/resolutions and when to use them
+- Can compare nvm and n and pin the Node version for a project
+
+---
+
+### Question 63: EventEmitter
+**Question:** What is the `EventEmitter` in Node.js? How do `on`, `once`, `emit`, `off` and `prependListener` work? Are listeners called synchronously or asynchronously? How are errors handled, and what is the max listeners warning?
+
+**Expected Answer:**
+- `events.EventEmitter` is Node's Observer pattern implementation. Streams, `http.Server`, `process`, sockets and child processes all extend it
+- `on(event, fn)` adds a listener, `once` removes it after the first call, `off`/`removeListener` needs the same function reference, `prependListener` puts it first, `emit(event, ...args)` returns `true` if there were listeners
+- **Listeners run synchronously**, in registration order, inside `emit`. An exception in a listener goes up to the `emit` caller. To defer work, use `setImmediate`/`queueMicrotask` inside the listener
+- **`'error'` is special:** emitting `'error'` with no listener throws and can crash the process. Always attach one. `captureRejections: true` routes rejected async listeners into `'error'`
+- **MaxListenersExceededWarning** at more than 10 listeners per event: usually a leak (adding a listener per request). Raise the limit with `setMaxListeners` only if it's intentional
+- `events.once(emitter, name, { signal })` returns a promise; `events.on()` returns an async iterator
+- `this` inside a regular-function listener is the emitter (not with arrow functions)
+
+**Code Challenge:**
+```javascript
+// 1. Create an OrderService class that extends EventEmitter and emits 'created' and 'paid' events
+// 2. Register a one-time listener and a regular listener; show the order they run in
+// 3. Handle the 'error' event correctly (what happens if nobody listens?)
+// 4. Wait for an event with a timeout using events.once() and AbortSignal
+// 5. Implement a minimal EventEmitter yourself (on, once, off, emit)
+```
+
+**Expected Solution:**
+```javascript
+const { EventEmitter, once } = require('events');
+
+// 1.
+class OrderService extends EventEmitter {
+  create(order) {
+    const saved = { ...order, id: Date.now(), status: 'created' };
+    this.emit('created', saved);
+    return saved;
+  }
+  pay(order) {
+    if (!order.total) {
+      this.emit('error', new Error(`Order ${order.id} has no total`));
+      return;
+    }
+    this.emit('paid', { ...order, status: 'paid' });
+  }
+}
+
+// 2.
+const service = new OrderService();
+service.on('created', (o) => console.log('A: email', o.id));
+service.once('created', (o) => console.log('B: first order bonus'));
+service.prependListener('created', () => console.log('C: audit'));
+console.log('before');
+service.create({ total: 10 }); // C, A, B (sync, in order; prepend goes first)
+service.create({ total: 20 }); // C, A (once removed)
+console.log('after');          // logs after all listeners: emit is synchronous
+
+// 3. Without this listener, pay({}) throws "Unhandled 'error' event" and crashes
+service.on('error', (err) => console.error('order error:', err.message));
+service.pay({ id: 1 });
+
+// 4.
+async function waitForPaid(svc, ms = 5000) {
+  const [order] = await once(svc, 'paid', { signal: AbortSignal.timeout(ms) });
+  return order; // rejects with AbortError on timeout
+}
+
+// 5.
+class MiniEmitter {
+  #listeners = new Map();
+  on(event, fn) {
+    if (!this.#listeners.has(event)) this.#listeners.set(event, []);
+    this.#listeners.get(event).push(fn);
+    return this;
+  }
+  off(event, fn) {
+    const list = this.#listeners.get(event) || [];
+    this.#listeners.set(event, list.filter((l) => l !== fn && l.original !== fn));
+    return this;
+  }
+  once(event, fn) {
+    const wrapper = (...args) => { this.off(event, wrapper); fn.apply(this, args); };
+    wrapper.original = fn;
+    return this.on(event, wrapper);
+  }
+  emit(event, ...args) {
+    const list = this.#listeners.get(event);
+    if (!list || list.length === 0) {
+      if (event === 'error') throw args[0];
+      return false;
+    }
+    [...list].forEach((fn) => fn.apply(this, args)); // copy: once() mutates the list
+    return true;
+  }
+}
+```
+
+**Evaluation Criteria:**
+- Knows listeners run synchronously and in order
+- Always handles `'error'` and knows the crash behavior
+- Recognizes the max-listeners warning as a likely leak
+- Uses `events.once` with a signal for promise-based waiting
+- Working mini implementation (copies the listener array before iterating, once/off interplay)
+
+---
+
+### Question 64: Core Modules & CommonJS vs ESM
+**Question:** What are Node.js core modules, and which ones do you use most (fs, path, http, events, stream, crypto, os, util, url, child_process, worker_threads)? What are the differences between CommonJS and ECMAScript Modules (loading, syntax, `this`, `__dirname`, top-level await, interop)?
+
+**Expected Answer:**
+- Core modules ship with Node, need no install, and are best imported with the `node:` prefix (`node:fs`), which can't be shadowed by an npm package
+- Common ones: `fs`/`fs/promises` (files), `path` (cross-platform paths), `http`/`https`/`http2`, `events`, `stream` (+ `stream/promises` pipeline), `crypto` (hashing, randomUUID, scrypt), `os`, `util` (promisify, inspect, types), `url`, `zlib`, `child_process`, `worker_threads`, `cluster`, `buffer`, `timers/promises`, `async_hooks` (AsyncLocalStorage), `perf_hooks`, `test` (built-in test runner)
+- **CommonJS:** `require`/`module.exports`, synchronous, resolved at runtime (can be conditional/dynamic), `__dirname`/`__filename` available, top-level `this === module.exports`, exports are a value copy at require time
+- **ESM:** `import`/`export`, statically analyzable (tree shaking), asynchronous loading, live bindings, strict mode by default, top-level `this` is `undefined`, top-level `await`, no `__dirname` (use `import.meta.dirname` in Node 20.11+ or `fileURLToPath(import.meta.url)`), file extensions required in relative imports
+- **Enable ESM:** `.mjs`, or `"type": "module"` in package.json (then `.cjs` for CommonJS files)
+- **Interop:** ESM can `import` CJS (default import = `module.exports`; named exports only when detectable). CJS can't `require` async ESM; use `await import()`. Newer Node (22.12+) allows `require(esm)` for ESM without top-level await
+- Packages: `"exports"` field with `"import"`/`"require"` conditions for dual packages
+
+**Code Challenge:**
+```javascript
+// 1. Using only core modules, build an HTTP server that serves a JSON file from disk
+// 2. Hash a password with crypto.scrypt and compare it with timingSafeEqual
+// 3. Convert this CommonJS module to ESM (including __dirname):
+const path = require('path');
+const config = require('./config.json');
+module.exports = { configPath: path.join(__dirname, 'config.json'), config };
+// 4. Import a CommonJS package from ESM and an ESM-only package from CommonJS
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+
+http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/data') {
+    const file = path.join(__dirname, 'data.json');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    fs.createReadStream(file)
+      .on('error', () => { res.statusCode = 500; res.end(); })
+      .pipe(res);
+    return;
+  }
+  res.writeHead(404).end();
+}).listen(3000);
+
+// 2.
+const crypto = require('node:crypto');
+const { promisify } = require('node:util');
+const scrypt = promisify(crypto.scrypt);
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const hash = await scrypt(password, salt, 64);
+  return `${salt.toString('hex')}:${hash.toString('hex')}`;
+}
+async function verifyPassword(password, stored) {
+  const [saltHex, hashHex] = stored.split(':');
+  const hash = await scrypt(password, Buffer.from(saltHex, 'hex'), 64);
+  return crypto.timingSafeEqual(hash, Buffer.from(hashHex, 'hex'));
+}
+
+// 3. ESM version (config.mjs)
+// import path from 'node:path';
+// import { fileURLToPath } from 'node:url';
+// import config from './config.json' with { type: 'json' };
+// const __dirname = path.dirname(fileURLToPath(import.meta.url)); // or import.meta.dirname
+// export const configPath = path.join(__dirname, 'config.json');
+// export { config };
+
+// 4.
+// ESM importing CJS:
+//   import express from 'express';           // default = module.exports
+// CJS importing an ESM-only package (e.g. node-fetch v3):
+//   async function main() {
+//     const { default: fetch } = await import('node-fetch');
+//   }
+```
+
+**Evaluation Criteria:**
+- Names the core modules a backend uses and what each is for; uses the `node:` prefix
+- Clear CJS vs ESM differences: sync vs async, static analysis, live bindings, `__dirname`, top-level await
+- Knows how to enable ESM and how interop works in both directions
+- Uses timing-safe comparison and streams where appropriate
+
+---
+
+### Question 65: Child Processes, Cluster & Worker Threads
+**Question:** Explain `spawn`, `exec`, `execFile` and `fork`. How does IPC work between parent and child? How do `cluster` and `worker_threads` differ, and when would you use each? What are C++ addons (N-API) for?
+
+**Expected Answer:**
+- **spawn(cmd, args):** starts a process and gives you streams (stdout/stderr). No shell by default. Best for long-running processes or large output
+- **exec(cmdString):** runs through a shell and buffers the whole output (`maxBuffer`, default 1 MB). Convenient, but shell injection risk with user input
+- **execFile(file, args):** like exec but without a shell: safer, args passed as an array
+- **fork(modulePath):** spawn specialized for Node scripts, with an IPC channel: `child.send(msg)` / `process.on('message')`. Messages are serialized (JSON or advanced serialization), so no shared memory
+- All are separate OS processes: own memory and V8 instance, expensive to start (~30 ms+, tens of MB)
+- **cluster:** forks N copies of the server that share a listening port (the primary distributes connections, round-robin on Linux). Uses all CPU cores for I/O-bound HTTP servers and gives crash isolation. In containers you'd usually run one process per container and scale with replicas instead
+- **worker_threads:** threads in the same process, each with its own event loop and V8 isolate. Cheaper than processes, can share memory (`SharedArrayBuffer`, `Atomics`) and transfer `ArrayBuffer`s without copying. For CPU-heavy work (image processing, hashing, parsing) that would block the event loop. Use a pool (piscina) instead of creating a worker per request
+- **Not for I/O:** Node's I/O is already async; threads help with CPU-bound work
+- **C++ addons:** native modules through Node-API (N-API, ABI-stable across Node versions) or node-addon-api. Used to wrap existing C/C++ libraries (bcrypt, sharp, sqlite3) or for hot CPU paths. Cost: build toolchain (node-gyp), platform-specific binaries (prebuilds). WebAssembly is often a simpler alternative
+
+**Code Challenge:**
+```javascript
+// 1. Run `ls -la` with spawn and stream its output
+// 2. Run a git command with execFile and explain why exec is dangerous with user input
+// 3. fork a child process and exchange messages with it (IPC)
+// 4. Move a CPU-heavy calculation (e.g. fib(40)) to a worker thread so the HTTP server stays responsive
+// 5. Use cluster to run one HTTP server per CPU core and restart workers that crash
+```
+
+**Expected Solution:**
+```javascript
+const { spawn, execFile, fork } = require('node:child_process');
+
+// 1.
+const ls = spawn('ls', ['-la']);
+ls.stdout.pipe(process.stdout);
+ls.on('close', (code) => console.log(`exit ${code}`));
+
+// 2.
+execFile('git', ['log', '-1', '--format=%H'], (err, stdout) => {
+  if (err) throw err;
+  console.log(stdout.trim());
+});
+// exec(`git checkout ${branch}`) with branch = "main; rm -rf /" runs both commands (shell injection)
+
+// 3. parent.js
+const child = fork('./child.js');
+child.send({ type: 'sum', numbers: [1, 2, 3] });
+child.on('message', (msg) => { console.log('result', msg.result); child.kill(); });
+// child.js
+// process.on('message', (msg) => {
+//   if (msg.type === 'sum') process.send({ result: msg.numbers.reduce((a, b) => a + b, 0) });
+// });
+
+// 4.
+// server.js
+const http = require('node:http');
+const { Worker } = require('node:worker_threads');
+function runFib(n) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker('./fib-worker.js', { workerData: n });
+    worker.once('message', resolve);
+    worker.once('error', reject);
+  });
+}
+http.createServer(async (req, res) => {
+  if (req.url === '/fib') return res.end(String(await runFib(40)));
+  res.end('still responsive');
+}).listen(3000);
+// fib-worker.js
+// const { parentPort, workerData } = require('node:worker_threads');
+// const fib = (n) => (n < 2 ? n : fib(n - 1) + fib(n - 2));
+// parentPort.postMessage(fib(workerData));
+// Production: a worker pool (piscina) instead of one worker per request
+
+// 5.
+const cluster = require('node:cluster');
+const os = require('node:os');
+if (cluster.isPrimary) {
+  for (let i = 0; i < os.availableParallelism(); i++) cluster.fork();
+  cluster.on('exit', (worker, code) => {
+    console.log(`worker ${worker.process.pid} died (${code}), restarting`);
+    cluster.fork();
+  });
+} else {
+  http.createServer((req, res) => res.end(`pid ${process.pid}`)).listen(3001);
+}
+```
+
+**Evaluation Criteria:**
+- Correct trade-offs between spawn/exec/execFile/fork (streams vs buffer, shell vs no shell)
+- Knows the shell injection risk of exec
+- Uses IPC with fork correctly
+- Picks worker_threads for CPU-bound work and cluster/replicas for using all cores; knows threads don't help with I/O
+- Knows what N-API addons are and their cost
+
+---
+
+### Question 66: Debugging & Logging in Node.js
+**Question:** How do you debug a Node.js application (`node --inspect`, `--inspect-brk`, Chrome DevTools, VS Code, ndb)? How do you debug a production issue? Which logging libraries do you use (winston, pino), and what makes good logging (levels, structured logs, correlation ids, redaction)?
+
+**Expected Answer:**
+- **`node --inspect`** opens the V8 inspector on 127.0.0.1:9229; attach with Chrome (`chrome://inspect`) or VS Code. **`--inspect-brk`** pauses on the first line (debugging startup). `--inspect=0.0.0.0` exposes it, never do that on a public host
+- **VS Code:** launch.json or the auto-attach / JavaScript Debug Terminal; breakpoints, conditional breakpoints, logpoints (log without editing code)
+- **ndb:** an older Google tool with a standalone DevTools UI; mostly unmaintained now, VS Code/Chrome replaced it
+- Others: `debugger;` statements, `NODE_DEBUG=http,net`, the `debug` package (`DEBUG=app:*`), `node inspect` CLI, `--trace-warnings`, `--enable-source-maps` for TS stack traces
+- **Production:** you don't attach a debugger. Use structured logs + correlation ids, error tracking (Sentry), metrics/APM/traces (OpenTelemetry, Datadog), heap snapshots or `--cpu-prof` on a single instance, `kill -USR1 <pid>` to enable the inspector temporarily through an SSH tunnel
+- **pino:** very fast, JSON by default, logging done async; `pino-pretty` for dev; `pino-http` for request logs. **winston:** flexible transports and formats, slower. Avoid `console.log` in production (no levels, no structure)
+- **Good logging:** levels (fatal/error/warn/info/debug/trace) set by env; JSON with consistent fields; a request/correlation id on every line (AsyncLocalStorage or child loggers); log errors with stack traces; redact secrets/PII; log to stdout and let the platform ship logs
+
+**Code Challenge:**
+```javascript
+// 1. Show how to start the app with the inspector and stop on the first line
+// 2. Create a pino (or winston) logger with levels set by env, JSON output in prod and pretty output in dev
+// 3. Add a request-logging middleware that attaches a request id to every log line (AsyncLocalStorage)
+// 4. Redact passwords and tokens from logs
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+// node --inspect-brk src/server.js   → open chrome://inspect or attach VS Code
+// npm script: "debug": "node --inspect src/server.js"
+
+// 2 + 4.
+const pino = require('pino');
+const isProd = process.env.NODE_ENV === 'production';
+const baseLogger = pino({
+  level: process.env.LOG_LEVEL || (isProd ? 'info' : 'debug'),
+  redact: {
+    paths: ['req.headers.authorization', 'req.headers.cookie', '*.password', '*.token'],
+    censor: '[REDACTED]',
+  },
+  transport: isProd ? undefined : { target: 'pino-pretty' },
+});
+
+// 3.
+const { AsyncLocalStorage } = require('node:async_hooks');
+const crypto = require('node:crypto');
+const als = new AsyncLocalStorage();
+
+const logger = new Proxy(baseLogger, {
+  get(target, prop) {
+    const child = als.getStore()?.logger;
+    return Reflect.get(child || target, prop);
+  },
+});
+
+function requestContext(req, res, next) {
+  const requestId = req.get('x-request-id') || crypto.randomUUID();
+  res.set('x-request-id', requestId);
+  const child = baseLogger.child({ requestId });
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    child.info({
+      method: req.method, url: req.originalUrl, status: res.statusCode,
+      ms: Number(process.hrtime.bigint() - start) / 1e6,
+    }, 'request completed');
+  });
+  als.run({ logger: child }, next);
+}
+// Anywhere deeper in the code: logger.info({ orderId }, 'order created') → includes requestId
+// (pino-http does most of this out of the box)
+```
+
+**Evaluation Criteria:**
+- Knows --inspect vs --inspect-brk and the security risk of exposing the inspector
+- Has a production debugging strategy beyond console.log
+- Picks a structured logger and explains levels, JSON, stdout
+- Correlation ids through AsyncLocalStorage or child loggers
+- Redacts sensitive data
+
+---
+
+### Question 67: HTTP Messages, Methods & Status Codes
+**Question:** What are the parts of an HTTP request and of an HTTP response, and how do they differ? Explain the HTTP methods and which are safe and idempotent. Explain the status code classes (1xx–5xx) with the codes you use most.
+
+**Expected Answer:**
+- **Request:** request line (method, path + query string, version), headers (Host, Content-Type, Authorization, Accept, Cookie, User-Agent), blank line, optional body
+- **Response:** status line (version, status code, reason phrase), headers (Content-Type, Content-Length, Set-Cookie, Cache-Control, Location), blank line, optional body
+- Difference: requests carry a method and target, responses carry a status; `Cookie` vs `Set-Cookie`; HTTP/2 encodes the same fields as binary frames with pseudo-headers (`:method`, `:path`, `:status`)
+- **Methods:** GET (read), HEAD (headers only), POST (create / non-idempotent action), PUT (replace whole resource), PATCH (partial update), DELETE, OPTIONS (capabilities / CORS preflight)
+- **Safe** (no side effects): GET, HEAD, OPTIONS. **Idempotent** (same effect if repeated): safe ones + PUT, DELETE. POST and PATCH are not idempotent by default → use an `Idempotency-Key` header for safe retries of payments/orders
+- **1xx** informational (100 Continue, 101 Switching Protocols for WebSocket)
+- **2xx** success: 200 OK, 201 Created (+ Location), 202 Accepted (async job), 204 No Content
+- **3xx** redirection: 301/308 permanent, 302/307 temporary (307/308 keep the method), 304 Not Modified (cache revalidation)
+- **4xx** client error: 400 Bad Request, 401 Unauthenticated, 403 Forbidden, 404, 405 Method Not Allowed, 409 Conflict, 412 Precondition Failed, 415, 422 Unprocessable Content (validation), 429 Too Many Requests (+ Retry-After)
+- **5xx** server error: 500, 502 Bad Gateway, 503 Service Unavailable (+ Retry-After), 504 Gateway Timeout. Don't leak stack traces
+
+**Code Challenge:**
+```javascript
+// 1. Write out a raw HTTP request (POST /api/users with JSON body) and its raw response
+// 2. Pick the status code for each case:
+//    a) resource created          b) deleted, no body          c) validation failed
+//    d) missing/invalid token     e) valid token, no permission f) duplicate email
+//    g) rate limited              h) resource moved permanently  i) cached copy still valid
+//    j) upstream service down
+// 3. Which of these is safe to retry automatically: GET, PUT, DELETE, POST, PATCH? Why?
+// 4. With Node's http module, return a 201 with a Location header
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+/*
+POST /api/users HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOi...
+Content-Length: 42
+
+{"name":"Ana","email":"ana@example.com"}
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /api/users/123
+Content-Length: 55
+
+{"id":123,"name":"Ana","email":"ana@example.com"}
+*/
+
+// 2.
+// a) 201  b) 204  c) 400 or 422  d) 401  e) 403  f) 409
+// g) 429 (+ Retry-After)  h) 301 or 308  i) 304  j) 502/503/504 (503 if we're shedding, 502/504 if upstream failed/timed out)
+
+// 3.
+// GET, PUT, DELETE are idempotent → safe to retry.
+// POST/PATCH may duplicate side effects → retry only with an Idempotency-Key the server dedupes.
+
+// 4.
+const http = require('node:http');
+http.createServer((req, res) => {
+  if (req.method === 'POST' && req.url === '/api/users') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      const user = { id: 123, ...JSON.parse(body) };
+      res.writeHead(201, {
+        'Content-Type': 'application/json',
+        Location: `/api/users/${user.id}`,
+      });
+      res.end(JSON.stringify(user));
+    });
+    return;
+  }
+  res.writeHead(404).end();
+}).listen(3000);
+```
+
+**Evaluation Criteria:**
+- Describes request and response structure accurately and their differences
+- Knows safe vs idempotent and why it matters for retries
+- Covers all status classes, including 3xx and 304
+- Correct 401 vs 403, 400 vs 422, 409, 429, 502/503/504 choices
+
+---
+
+### Question 68: Cookies, localStorage & Session vs Token Auth
+**Question:** What is a JWT and what are cookies? How do cookies, localStorage and sessionStorage differ (size, sent with requests, XSS/CSRF exposure, lifetime)? Compare server-side sessions with JWT-based auth. Where should a token be stored in the browser?
+
+**Expected Answer:**
+- **JWT:** `base64url(header).base64url(payload).signature`. Signed (HS256/RS256/ES256), **not encrypted**: anyone can read the payload. Self-contained claims (`sub`, `exp`, `iat`, `aud`, `iss`), verified without a DB lookup. Hard to revoke before `exp` → short-lived access tokens + refresh tokens (rotation, denylist)
+- **Cookies:** set by the server via `Set-Cookie`, sent automatically by the browser with every matching request. ~4 KB. Flags: `HttpOnly` (JS can't read it → XSS can't steal it), `Secure` (HTTPS only), `SameSite=Lax/Strict/None` (CSRF defense), `Domain`, `Path`, `Max-Age`/`Expires`. Prefix `__Host-` locks it to the host
+- **localStorage:** ~5–10 MB per origin, persistent, synchronous API, never sent automatically, readable by any JS on the page → stolen by XSS. **sessionStorage:** same, but per tab and cleared when the tab closes
+- **Comparison:** cookies are exposed to CSRF (sent automatically) but can be hidden from XSS; localStorage is immune to CSRF but exposed to XSS. XSS is the bigger risk, so for auth prefer HttpOnly cookies + CSRF protection
+- **Sessions (stateful):** random session id in a cookie, data on the server (Redis). Easy revocation, small cookie, needs a shared store. **JWT (stateless):** scales without a store, works across services/domains and for mobile, but revocation and size are harder. Common hybrid: short-lived JWT access token in memory + refresh token in an HttpOnly cookie
+- **CSRF defenses:** `SameSite=Lax/Strict`, CSRF tokens (synchronizer or double-submit), checking `Origin`, not changing state on GET
+
+**Code Challenge:**
+```javascript
+// 1. In Express, set an auth cookie with the right flags (HttpOnly, Secure, SameSite, maxAge, path)
+// 2. Decode a JWT by hand (header.payload.signature) and explain why it isn't encrypted
+// 3. Explain how you'd protect a cookie-based session from CSRF
+// 4. Pick a storage option for: access token, refresh token, UI theme preference, shopping cart draft
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+app.post('/auth/login', async (req, res) => {
+  const { accessToken, refreshToken } = await authService.login(req.body);
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: '/auth/refresh',          // only sent to the refresh endpoint
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.json({ accessToken });        // client keeps it in memory
+});
+
+// 2.
+function decodeJwt(token) {
+  const [header, payload] = token.split('.').map((part) =>
+    JSON.parse(Buffer.from(part, 'base64url').toString('utf8')));
+  return { header, payload };
+}
+// Anyone can decode it: base64url is an encoding, not encryption.
+// The signature only proves it wasn't modified. Never put secrets in the payload.
+// (JWE exists for encrypted tokens.)
+
+// 3.
+// - SameSite=Lax or Strict on the session cookie
+// - CSRF token for state-changing requests (e.g. double-submit: cookie + X-CSRF-Token header must match)
+// - Check the Origin header on POST/PUT/PATCH/DELETE
+// - Never change state on GET
+
+// 4.
+// access token     → memory (JS variable); short-lived
+// refresh token    → HttpOnly + Secure + SameSite cookie
+// theme preference → localStorage (not sensitive)
+// cart draft       → localStorage (or server-side if the user is logged in)
+```
+
+**Evaluation Criteria:**
+- Knows JWT is signed but readable and the revocation trade-off
+- Knows the cookie flags and what each defends against
+- Compares storage options in terms of XSS vs CSRF, not just size
+- Compares sessions vs JWT and knows the hybrid approach
+- Knows concrete CSRF defenses
+
+---
+
+## 8.3 Databases
+
+### Question 69: Views, Stored Procedures & Triggers
+**Question:** What are views, materialized views, stored procedures, functions and triggers? What are they good for, and what are the downsides of putting business logic in the database?
+
+**Expected Answer:**
+- **View:** a saved query that acts like a virtual table. No data stored, it runs every time. Used to simplify complex joins, hide columns (security), and give a stable interface over a changing schema. Simple views can be updatable
+- **Materialized view:** stores the result. Fast reads, but stale until `REFRESH MATERIALIZED VIEW` (PostgreSQL; `CONCURRENTLY` needs a unique index). Good for reports and dashboards. MySQL has no native materialized views (use summary tables + events)
+- **Stored procedure:** named code stored and run in the DB (`CALL proc()`). Can manage transactions (PostgreSQL 11+ procedures). **Function:** returns a value/table, usable inside SQL (`SELECT fn()`)
+- **Trigger:** runs automatically `BEFORE`/`AFTER` `INSERT`/`UPDATE`/`DELETE`, per row or per statement. Used for audit logs, `updated_at`, enforcing invariants, denormalized counters
+- **Pros:** fewer round-trips, logic close to the data, consistency no matter which app writes, can restrict permissions (grant EXECUTE, not table access)
+- **Cons:** logic hidden from the app code; harder to version, test, debug and review; vendor lock-in; scales with the DB, which is the hardest part to scale; triggers cause surprising side effects and slow bulk writes
+- **Senior view:** keep business logic in the app; use the DB for data integrity (constraints, audit triggers, `updated_at`), reporting views, and the occasional performance-critical procedure. Keep DB code in migrations
+
+**Code Challenge:**
+```sql
+-- 1. Create a view of active users with their order count
+-- 2. Create a materialized view for a monthly sales report and refresh it
+-- 3. Write a stored procedure/function that transfers stock between warehouses in a transaction
+-- 4. Write a trigger that keeps updated_at current and writes changes to an audit table
+-- 5. Call the procedure from Node.js (pg)
+```
+
+**Expected Solution:**
+```sql
+-- 1.
+CREATE VIEW active_users_with_orders AS
+SELECT u.id, u.email, COUNT(o.id) AS order_count
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id
+WHERE u.active = true
+GROUP BY u.id, u.email;
+
+-- 2.
+CREATE MATERIALIZED VIEW monthly_sales AS
+SELECT date_trunc('month', created_at) AS month, SUM(total) AS revenue, COUNT(*) AS orders
+FROM orders
+GROUP BY 1;
+CREATE UNIQUE INDEX ON monthly_sales (month);
+REFRESH MATERIALIZED VIEW CONCURRENTLY monthly_sales; -- e.g. nightly cron
+
+-- 3. (PostgreSQL)
+CREATE OR REPLACE PROCEDURE transfer_stock(p_product INT, p_from INT, p_to INT, p_qty INT)
+LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE stock SET qty = qty - p_qty
+   WHERE product_id = p_product AND warehouse_id = p_from AND qty >= p_qty;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Not enough stock in warehouse %', p_from;
+  END IF;
+
+  INSERT INTO stock (product_id, warehouse_id, qty) VALUES (p_product, p_to, p_qty)
+  ON CONFLICT (product_id, warehouse_id) DO UPDATE SET qty = stock.qty + EXCLUDED.qty;
+END;
+$$;
+-- The procedure runs inside the caller's transaction; the exception rolls it all back.
+
+-- 4.
+CREATE OR REPLACE FUNCTION touch_and_audit() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at := now();
+  INSERT INTO audit_log (table_name, row_id, old_data, new_data, changed_at)
+  VALUES (TG_TABLE_NAME, NEW.id, to_jsonb(OLD), to_jsonb(NEW), now());
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER products_touch_audit
+BEFORE UPDATE ON products
+FOR EACH ROW EXECUTE FUNCTION touch_and_audit();
+```
+```javascript
+// 5.
+const { Pool } = require('pg');
+const pool = new Pool();
+async function transferStock(productId, from, to, qty) {
+  await pool.query('CALL transfer_stock($1, $2, $3, $4)', [productId, from, to, qty]);
+}
+```
+
+**Evaluation Criteria:**
+- Clear view vs materialized view distinction, including staleness and refresh
+- Knows procedure vs function vs trigger and real use cases for each
+- Gives a balanced opinion on logic in the DB (testability, lock-in, scaling)
+- Correct transactional procedure; trigger uses NEW/OLD correctly
+
+---
+
+### Question 70: ORM vs ODM
+**Question:** What is an ORM and what is an ODM? Give examples (Prisma, TypeORM, Sequelize, Drizzle, Mongoose). What are the pros and cons compared with raw SQL or a query builder? What is the N+1 problem and how do you avoid it?
+
+**Expected Answer:**
+- **ORM** (Object-Relational Mapper): maps tables/rows/relations to classes/objects for SQL databases. Sequelize, TypeORM (Active Record or Data Mapper), Prisma (schema file + generated type-safe client), MikroORM, Drizzle (thin, SQL-like, typed)
+- **ODM** (Object-Document Mapper): maps documents in a document DB (MongoDB) to objects. Mongoose: schemas, validation, middleware/hooks, `populate` for references. MongoDB itself has no schema, so the ODM adds one in the app
+- **Query builders** (Knex, Kysely): composable SQL without mapping entities. **Raw driver** (pg, mysql2): full control
+- **Pros:** productivity, migrations, type safety (Prisma/Drizzle), validation, protection from SQL injection by default, portable across DBs
+- **Cons:** leaky abstraction, hard-to-see generated SQL, poor fit for complex reports/window functions, performance traps (N+1, over-fetching), heavy hydration costs. Senior answer: ORM for CRUD + raw SQL for complex/hot queries, and always look at the generated SQL
+- **N+1:** 1 query for a list + 1 query per item for its relation. Fix with eager loading (`include`, JOIN), batching with `WHERE id IN (...)`, DataLoader (GraphQL), or `populate` (which runs one extra query per path, not per document)
+- **Mongo modeling:** embed when the data is read together and bounded in size; reference when it's large, unbounded or shared
+
+**Code Challenge:**
+```javascript
+// 1. Define a User has-many Post model with Sequelize or Prisma
+// 2. Define the same with Mongoose (embedded vs referenced posts)
+// 3. Show an N+1 query and fix it with eager loading / populate
+// 4. Run a raw query from the ORM for a report the ORM can't express well
+// 5. Run two writes in one transaction with the ORM
+```
+
+**Expected Solution:**
+```javascript
+// 1. Prisma (schema.prisma)
+/*
+model User {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+  posts Post[]
+}
+model Post {
+  id       Int    @id @default(autoincrement())
+  title    String
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId Int
+  @@index([authorId])
+}
+*/
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// 2. Mongoose
+const mongoose = require('mongoose');
+// referenced (unbounded posts)
+const PostSchema = new mongoose.Schema({
+  title: String,
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+});
+const UserSchema = new mongoose.Schema({ email: { type: String, unique: true } });
+// embedded alternative (small, bounded, read together):
+// const UserSchema = new mongoose.Schema({ email: String, addresses: [{ city: String, zip: String }] });
+const Post = mongoose.model('Post', PostSchema);
+
+// 3. N+1
+async function listWithAuthorsSlow() {
+  const posts = await prisma.post.findMany();               // 1 query
+  for (const p of posts) {
+    p.author = await prisma.user.findUnique({ where: { id: p.authorId } }); // N queries
+  }
+  return posts;
+}
+// Fix: eager loading
+const posts = await prisma.post.findMany({ include: { author: true } });
+// Mongoose: await Post.find().populate('author');   // 2 queries total
+
+// 4. Raw query (tagged template → parameterized, safe)
+const report = await prisma.$queryRaw`
+  SELECT date_trunc('month', created_at) AS month, COUNT(*) AS posts
+  FROM "Post" GROUP BY 1 ORDER BY 1`;
+
+// 5. Transaction
+await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({ data: { email: 'ana@example.com' } });
+  await tx.post.create({ data: { title: 'Hello', authorId: user.id } });
+});
+```
+
+**Evaluation Criteria:**
+- Clear ORM vs ODM definitions with real tools
+- Balanced pros/cons; knows when to drop down to raw SQL
+- Recognizes and fixes N+1
+- Embedded vs referenced modeling in Mongo
+- Uses transactions and parameterized raw queries
+
+---
+
+## 8.4 Docker & Kubernetes
+
+### Question 71: Dockerfile vs Docker Compose
+**Question:** What is the difference between a Dockerfile and Docker Compose? What are images, containers, layers and volumes? What are the best practices for a production Node.js Dockerfile?
+
+**Expected Answer:**
+- **Dockerfile:** instructions to **build one image** (FROM, WORKDIR, COPY, RUN, ENV, EXPOSE, USER, CMD)
+- **Docker Compose:** a YAML file to **run several containers together** (services, networks, volumes, env, healthchecks, depends_on). Mostly for local dev and testing; in production you use an orchestrator (Kubernetes, ECS)
+- **Image:** read-only template made of layers. **Container:** a running instance with a thin writable layer. **Layer:** each instruction creates one; cached and reused if the instruction and its inputs didn't change
+- **Volumes:** persist data outside the container lifecycle (named volumes for DB data, bind mounts for source code in dev)
+- **Best practices:**
+    - Multi-stage build: build/compile in one stage, copy only the output and production deps to the final image
+    - Small base (`node:22-alpine` or `-slim`, or distroless); pin the version
+    - Copy `package*.json` first and run `npm ci` before copying the source, so the dependency layer stays cached
+    - `npm ci --omit=dev`; a `.dockerignore` (node_modules, .git, .env)
+    - Run as non-root (`USER node`)
+    - `CMD ["node", "dist/server.js"]` in exec form so Node gets SIGTERM; don't run through npm. Use `--init` or tini if you spawn child processes
+    - No secrets in the image (build args/ENV end up in layers); use runtime env or secret mounts
+    - `HEALTHCHECK` or orchestrator probes; `NODE_ENV=production`
+
+**Code Challenge:**
+```yaml
+# 1. Write a multi-stage Dockerfile for a Node.js API (small image, non-root user, layer caching, .dockerignore)
+# 2. Write a docker-compose.yml with the API, PostgreSQL and Redis:
+#    - env vars, named volume for DB data, healthcheck, depends_on with condition
+# 3. Explain the order of COPY package*.json and COPY . and why it matters
+```
+
+**Expected Solution:**
+```dockerfile
+# 1. Dockerfile
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build && npm prune --omit=dev
+
+FROM node:22-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node package.json ./
+USER node
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+
+# .dockerignore
+# node_modules
+# dist
+# .git
+# .env*
+# Dockerfile
+```
+```yaml
+# 2. docker-compose.yml
+services:
+  api:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      DATABASE_URL: postgres://app:secret@db:5432/app
+      REDIS_URL: redis://cache:6379
+    depends_on:
+      db: { condition: service_healthy }
+      cache: { condition: service_started }
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      retries: 10
+  cache:
+    image: redis:7-alpine
+volumes:
+  pgdata:
+
+# 3. package*.json is copied and installed first, so the npm ci layer is reused
+#    when only source code changes. COPY . . first would reinstall deps on every change.
+```
+
+**Evaluation Criteria:**
+- Clear Dockerfile (build one image) vs Compose (run many containers) distinction
+- Knows images, containers, layers, volumes
+- Multi-stage, non-root, layer caching, .dockerignore, exec-form CMD
+- Compose with healthcheck-based depends_on and named volumes
+- No secrets baked into the image
+
+---
+
+### Question 72: Kubernetes Core Objects
+**Question:** What is Kubernetes and what problem does it solve? Explain Pods, Deployments, ReplicaSets, Services (ClusterIP, NodePort, LoadBalancer), Ingress, ConfigMaps, Secrets, liveness/readiness probes and the Horizontal Pod Autoscaler.
+
+**Expected Answer:**
+- **Kubernetes:** a container orchestrator. You declare the desired state (YAML); controllers keep reconciling the actual state toward it: scheduling, self-healing, scaling, rolling updates, service discovery, config
+- **Pod:** smallest unit; one or more containers sharing network (same IP) and volumes. Ephemeral; don't create them directly
+- **ReplicaSet:** keeps N identical pods running. **Deployment:** manages ReplicaSets for rolling updates and rollbacks (`maxSurge`, `maxUnavailable`)
+- **StatefulSet** (stable identity/storage for DBs), **DaemonSet** (one pod per node), **Job/CronJob** (batch)
+- **Service:** stable virtual IP + DNS name in front of pods matched by labels. **ClusterIP** (internal only, default), **NodePort** (port on every node), **LoadBalancer** (cloud LB)
+- **Ingress:** L7 HTTP routing (host/path), TLS, through an ingress controller (nginx, ALB). Gateway API is the newer alternative
+- **ConfigMap:** non-secret config. **Secret:** sensitive values, only base64-encoded by default → enable encryption at rest, RBAC, or use an external secret manager
+- **Probes:** **liveness** failing → container restarted (don't check dependencies here, or a DB outage restarts everything); **readiness** failing → pod removed from Service endpoints (not restarted); **startup** for slow boots
+- **Requests/limits:** requests drive scheduling, limits cap usage (memory over limit → OOMKilled). Set Node's heap accordingly
+- **HPA:** scales replicas based on CPU/memory/custom metrics; needs resource requests and metrics-server
+- **Namespaces** for isolation; on SIGTERM the pod has `terminationGracePeriodSeconds` (30s default) to drain
+
+**Code Challenge:**
+```yaml
+# For the Node.js API from Q71, write:
+# 1. A Deployment with 3 replicas, resource requests/limits, and liveness + readiness probes
+# 2. A ConfigMap and a Secret, injected as environment variables
+# 3. A ClusterIP Service and an Ingress exposing /api
+# 4. An HPA that scales between 3 and 10 pods at 70% CPU
+# 5. The kubectl commands to apply, check rollout status and roll back
+```
+
+**Expected Solution:**
+```yaml
+# 2.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: api-config }
+data:
+  LOG_LEVEL: info
+  REDIS_URL: redis://redis:6379
+---
+apiVersion: v1
+kind: Secret
+metadata: { name: api-secrets }
+type: Opaque
+stringData:
+  DATABASE_URL: postgres://app:secret@postgres:5432/app
+---
+# 1.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: api }
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: api } }
+  strategy:
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata: { labels: { app: api } }
+    spec:
+      containers:
+        - name: api
+          image: registry.example.com/api:1.4.2
+          ports: [{ containerPort: 3000 }]
+          envFrom:
+            - configMapRef: { name: api-config }
+            - secretRef: { name: api-secrets }
+          resources:
+            requests: { cpu: 250m, memory: 256Mi }
+            limits: { memory: 512Mi }
+          readinessProbe:
+            httpGet: { path: /ready, port: 3000 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+# 3.
+apiVersion: v1
+kind: Service
+metadata: { name: api }
+spec:
+  type: ClusterIP
+  selector: { app: api }
+  ports: [{ port: 80, targetPort: 3000 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: api }
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shop.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend: { service: { name: api, port: { number: 80 } } }
+---
+# 4.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: api }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: api }
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }
+
+# 5.
+# kubectl apply -f k8s/
+# kubectl rollout status deployment/api
+# kubectl rollout undo deployment/api
+# kubectl get pods -l app=api ; kubectl logs -l app=api --tail=50
+```
+
+**Evaluation Criteria:**
+- Explains desired-state reconciliation, not just "runs containers"
+- Correct roles of Pod, ReplicaSet, Deployment, Service types, Ingress
+- Liveness vs readiness difference and the dependency-check pitfall
+- Knows Secrets are only base64 by default
+- Requests/limits and HPA prerequisites; rollout/rollback commands
+
+---
+
+## 8.5 CI/CD & Teamwork
+
+### Question 73: Git: Merge vs Rebase
+**Question:** What is the difference between `git merge` and `git rebase`? When do you use each, and what is the golden rule of rebasing? What are fast-forward and squash merges? How does Git (distributed) differ from SVN (centralized)?
+
+**Expected Answer:**
+- **Merge:** combines two branches with a merge commit that has two parents. Keeps the true history, non-destructive, but the history can get noisy
+- **Rebase:** replays your commits on top of another base, creating **new commits** (new hashes). Linear history, no merge commits, but it rewrites history
+- **Golden rule:** never rebase commits that others have already pulled (shared/public branches). Rebase your own local/feature branch only. After rebasing a pushed branch, use `git push --force-with-lease` (not `--force`)
+- **Interactive rebase** (`git rebase -i`): squash, reword, reorder, drop commits before opening a PR
+- **Fast-forward:** if the target hasn't moved, merge just moves the pointer (no merge commit). `--no-ff` forces a merge commit
+- **Squash merge:** collapses the whole PR into one commit on main. Clean history, but loses the individual commits
+- Team policy matters more than the choice: e.g. "rebase feature branches on main, squash-merge PRs"
+- **Git vs SVN:** Git is distributed (every clone has the full history, works offline, cheap branches, local commits). SVN is centralized (one server, commits go straight to the server, branches are directory copies, path-based permissions, handles huge binaries better)
+- Recovery: `git reflog` shows where HEAD has been, so "lost" commits can be recovered
+
+**Code Challenge:**
+```bash
+# 1. Update your feature branch with the latest main, once with merge and once with rebase. Draw the history for each.
+# 2. Clean up 4 messy commits into 1 before opening a PR
+# 3. You rebased a branch that a teammate already pulled. What happens and how do you recover?
+# 4. Resolve a conflict during a rebase and continue
+# 5. Recover a commit you lost after a bad reset
+```
+
+**Expected Solution:**
+```bash
+# 1.
+git switch feature
+git fetch origin
+git merge origin/main
+#   A---B---C  feature
+#  /         \
+# o---D---E---M        (M = merge commit)
+
+git rebase origin/main
+# o---D---E---A'---B'---C'  feature   (new commits, linear)
+
+# 2.
+git rebase -i HEAD~4
+# pick a1 Add order endpoint
+# squash b2 fix typo
+# squash c3 wip
+# squash d4 address review
+git push --force-with-lease
+
+# 3. The teammate's branch still has the old commits A, B, C; when they pull, git tries to
+#    merge old and new versions → duplicated commits and conflicts.
+#    Fix: teammate runs `git fetch && git rebase origin/feature` (or `git reset --hard origin/feature`
+#    if they have no local work). Prevention: don't rebase shared branches.
+
+# 4.
+git rebase origin/main
+# CONFLICT in src/orders.js
+# edit file, then:
+git add src/orders.js
+git rebase --continue      # or --abort to go back to where you started
+
+# 5.
+git reflog                 # find the hash before the reset, e.g. abc123 HEAD@{2}
+git reset --hard abc123    # or: git branch rescue abc123
+```
+
+**Evaluation Criteria:**
+- Explains merge vs rebase effect on history and commit hashes
+- States the golden rule and uses `--force-with-lease`
+- Knows fast-forward, `--no-ff`, squash merge and interactive rebase
+- Can resolve rebase conflicts and recover with reflog
+- Knows distributed vs centralized VCS differences
+
+---
+
+### Question 74: Module Bundlers & Build Tools
+**Question:** What is a module bundler (webpack, Rollup, esbuild, Vite) and what problems does it solve? Explain loaders/plugins, tree shaking, code splitting and source maps. What does Babel do? How do task runners (Grunt, Gulp) and preprocessors fit in, and do you need a bundler for a Node.js backend?
+
+**Expected Answer:**
+- **Bundler:** starts from entry points, follows imports to build a dependency graph, and outputs optimized bundles. Solves: many modules → few files for the browser, transforms (TS, JSX, CSS), minification, cache-busting hashes
+- **webpack:** most configurable; **loaders** transform files (babel-loader, ts-loader, css-loader), **plugins** act on the whole build (HtmlWebpackPlugin, MiniCssExtract, DefinePlugin). **Rollup:** best for libraries (clean ESM output). **esbuild/SWC:** Go/Rust, 10–100x faster. **Vite:** native ESM dev server + Rollup/Rolldown for production
+- **Tree shaking:** removes unused exports; needs static ESM imports and `"sideEffects": false`. CommonJS `require` of a whole library defeats it
+- **Code splitting:** `import()` creates separate chunks loaded on demand; vendor chunks for better caching
+- **Source maps:** map minified/transpiled code back to the original source for debugging and error tracking
+- **Babel:** a transpiler: modern syntax → syntax older targets understand (`@babel/preset-env` + browserslist), JSX, TS stripping, plus polyfills via core-js. TypeScript `tsc` or SWC/esbuild do the same for TS
+- **Preprocessors:** Sass/Less/PostCSS for CSS, TS for JS. **Task runners** (Grunt config-based, Gulp stream/code-based) automated build steps before bundlers and npm scripts replaced most of them. **Bower** was a front-end package manager, now dead (npm won)
+- **Node backend:** usually no bundler needed; `tsc` is enough. Bundling helps for serverless (smaller packages, faster cold starts), single-file CLIs, or monorepos. Keep native modules external
+
+**Code Challenge:**
+```javascript
+// 1. Write a minimal webpack.config.js: entry, output, a babel-loader rule, a CSS loader rule, production mode
+// 2. Configure Babel to target Node 20 and the last 2 browser versions
+// 3. Explain why this import breaks tree shaking and fix it:
+const _ = require('lodash');
+_.debounce(fn, 300);
+// 4. Bundle a Node.js Lambda handler with esbuild into a single file
+```
+
+**Expected Solution:**
+```javascript
+// 1. webpack.config.js
+const path = require('node:path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+module.exports = {
+  mode: 'production',
+  entry: './src/index.js',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].[contenthash].js',
+    clean: true,
+  },
+  devtool: 'source-map',
+  module: {
+    rules: [
+      { test: /\.jsx?$/, exclude: /node_modules/, use: 'babel-loader' },
+      { test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] },
+    ],
+  },
+  plugins: [new MiniCssExtractPlugin({ filename: '[name].[contenthash].css' })],
+  optimization: { splitChunks: { chunks: 'all' } },
+};
+
+// 2. babel.config.js
+module.exports = {
+  presets: [
+    ['@babel/preset-env', {
+      targets: { node: '20', browsers: ['last 2 versions'] },
+      useBuiltIns: 'usage',
+      corejs: 3,
+    }],
+  ],
+};
+
+// 3. require() of the whole CommonJS lodash pulls in the full library (~70 KB).
+// Fix: ESM build with a named import, or a per-method import
+import { debounce } from 'lodash-es';
+// or: import debounce from 'lodash/debounce';
+
+// 4. esbuild
+// npx esbuild src/handler.ts --bundle --platform=node --target=node20 \
+//   --minify --sourcemap --external:@aws-sdk/* --outfile=dist/handler.js
+// (@aws-sdk v3 is already in the Lambda runtime; native modules must stay external)
+```
+
+**Evaluation Criteria:**
+- Explains what a bundler does (graph, transforms, output) and compares tools
+- Loaders vs plugins; tree shaking requirements; code splitting; source maps
+- Knows Babel's role and how targets drive transpilation and polyfills
+- Puts Grunt/Gulp/Bower in historical context
+- Knows when a Node backend benefits from bundling (serverless) and when it doesn't
+
+---
+
+## 8.6 JavaScript (syllabus)
+
+### Question 75: Functional Programming in JS
+**Question:** What is functional programming? Explain pure functions, side effects, immutability, first-class and higher-order functions, currying, partial application, composition and recursion. What are the trade-offs of recursion in JavaScript?
+
+**Expected Answer:**
+- **FP:** build programs from small pure functions and combine them; avoid shared mutable state
+- **Pure function:** same input → same output, no side effects (no I/O, no mutation of arguments/globals, no `Date.now()`/`Math.random()`). Easy to test, cache (memoize) and reason about
+- **Side effects** are unavoidable (DB, HTTP); push them to the edges ("functional core, imperative shell")
+- **Immutability:** return new values instead of mutating (spread, `map`, `toSorted`, `structuredClone`)
+- **First-class functions:** functions are values. **Higher-order functions** take or return functions (`map`, `filter`, `reduce`, middleware, decorators)
+- **Currying:** `f(a, b, c)` → `f(a)(b)(c)`, one argument at a time. **Partial application:** fix some arguments now, the rest later (`bind`). Useful for configurable helpers (`const logError = log('error')`)
+- **Composition:** `compose(f, g)(x) = f(g(x))`; `pipe` runs left to right
+- **Recursion:** a function calls itself with a smaller input until a base case. Natural for trees/nested data. **Trade-off:** JS engines (V8) don't do tail-call optimization, so deep recursion throws `RangeError: Maximum call stack size exceeded` (~10k frames). Use iteration, an explicit stack, or a trampoline for deep inputs
+- FP in JS is pragmatic: use it where it improves clarity, not for its own sake
+
+**Code Challenge:**
+```javascript
+// 1. Turn this impure function into a pure one:
+let total = 0;
+function addToTotal(x) { total += x; return total; }
+// 2. Implement curry(fn) so that curry(add3)(1)(2)(3) === curry(add3)(1, 2)(3) === 6
+// 3. Implement compose(...fns) and pipe(...fns)
+// 4. Flatten a deeply nested array recursively, then without recursion
+// 5. Sum 1..100000 recursively. What happens, and how do you avoid it?
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+const addToTotal = (total, x) => total + x; // state passed in, new value returned
+
+// 2.
+function curry(fn) {
+  return function curried(...args) {
+    if (args.length >= fn.length) return fn.apply(this, args);
+    return (...more) => curried.apply(this, [...args, ...more]);
+  };
+}
+const add3 = (a, b, c) => a + b + c;
+curry(add3)(1)(2)(3);  // 6
+curry(add3)(1, 2)(3);  // 6
+
+// 3.
+const compose = (...fns) => (x) => fns.reduceRight((acc, fn) => fn(acc), x);
+const pipe = (...fns) => (x) => fns.reduce((acc, fn) => fn(acc), x);
+const slugify = pipe(
+  (s) => s.trim(),
+  (s) => s.toLowerCase(),
+  (s) => s.replace(/\s+/g, '-'),
+);
+slugify('  Hello World '); // 'hello-world'
+
+// 4.
+const flattenRec = (arr) =>
+  arr.reduce((acc, x) => (Array.isArray(x) ? acc.concat(flattenRec(x)) : acc.concat(x)), []);
+
+function flattenIter(arr) {
+  const stack = [...arr];
+  const out = [];
+  while (stack.length) {
+    const x = stack.pop();
+    if (Array.isArray(x)) stack.push(...x);
+    else out.push(x);
+  }
+  return out.reverse();
+}
+// built-in: arr.flat(Infinity)
+
+// 5.
+const sumRec = (n) => (n === 0 ? 0 : n + sumRec(n - 1));
+// sumRec(100000) → RangeError: Maximum call stack size exceeded (no TCO in V8)
+// Fixes: a loop, the formula n * (n + 1) / 2, or a trampoline:
+const trampoline = (fn) => (...args) => {
+  let result = fn(...args);
+  while (typeof result === 'function') result = result();
+  return result;
+};
+const sumT = trampoline(function go(n, acc = 0) {
+  return n === 0 ? acc : () => go(n - 1, acc + n);
+});
+sumT(100000); // 5000050000
+```
+
+**Evaluation Criteria:**
+- Defines pure functions and side effects precisely
+- Distinguishes currying from partial application; working curry
+- Implements compose/pipe and uses them meaningfully
+- Knows recursion's stack limit and the lack of TCO, with alternatives
+- Pragmatic view of FP in a real codebase
+
+---
+
+## 8.7 Node.js (syllabus)
+
+### Question 76: Process Management & Graceful Shutdown
+**Question:** How do you keep a Node.js process running in production (PM2, Forever, systemd, Docker restart policies, Kubernetes)? What does PM2 cluster mode do? How do you implement graceful shutdown? How should you handle `uncaughtException` and `unhandledRejection`?
+
+**Expected Answer:**
+- A Node process dies on an unhandled error, so something has to restart it and collect logs
+- **Forever:** old, simple restart-on-crash tool; effectively deprecated. **PM2:** process manager with restart policies, cluster mode, log management, `pm2 reload` for zero-downtime restarts, startup scripts, monitoring. **systemd:** the OS service manager (`Restart=always`)
+- **Containers:** the orchestrator is the process manager (Docker `restart: unless-stopped`, Kubernetes restarts pods). Run plain `node` as PID 1 (or with tini), not PM2, so signals and scaling are handled by the platform
+- **PM2 cluster mode:** runs N instances sharing a port using Node's cluster module; `reload` restarts them one by one
+- **Graceful shutdown on SIGTERM/SIGINT:**
+    1. Mark as not ready (readiness probe fails → LB stops sending traffic)
+    2. `server.close()`: stop accepting new connections, let in-flight requests finish (`closeIdleConnections()` for keep-alive)
+    3. Stop consumers/cron jobs, flush logs, close DB pools, Redis, queue connections
+    4. `process.exit(0)`; with a hard timeout (e.g. 10s, under the platform's grace period) that forces exit
+- **uncaughtException:** the process is in an unknown state. Log it (sync or flush), report it to error tracking, then exit with code 1 and let the manager restart. Don't keep serving
+- **unhandledRejection:** crashes by default since Node 15. Treat it the same way, and fix the missing `catch`
+- Error tracking: Sentry/Datadog capture these with context; `process.on('warning')` for warnings
+
+**Code Challenge:**
+```javascript
+// 1. Write an ecosystem.config.js for PM2: cluster mode on all cores, max memory restart, env per environment
+// 2. Implement graceful shutdown on SIGTERM/SIGINT:
+//    stop accepting connections, finish in-flight requests, close DB/Redis, exit with a timeout fallback
+// 3. Add uncaughtException / unhandledRejection handlers. What should they do and not do?
+// 4. Make the readiness check fail during shutdown so the load balancer stops sending traffic
+```
+
+**Expected Solution:**
+```javascript
+// 1. ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'orders-api',
+    script: 'dist/server.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    max_memory_restart: '500M',
+    kill_timeout: 10000, // time allowed for graceful shutdown
+    env: { NODE_ENV: 'development' },
+    env_production: { NODE_ENV: 'production' },
+  }],
+};
+// pm2 start ecosystem.config.js --env production ; pm2 reload orders-api
+
+// 2 + 4.
+const express = require('express');
+const app = express();
+let shuttingDown = false;
+
+app.get('/health', (req, res) => res.sendStatus(200));                       // liveness
+app.get('/ready', (req, res) => res.sendStatus(shuttingDown ? 503 : 200));   // readiness
+
+const server = app.listen(3000);
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, 'shutting down');
+
+  const forceExit = setTimeout(() => {
+    logger.error('forced shutdown after timeout');
+    process.exit(1);
+  }, 10_000);
+  forceExit.unref();
+
+  try {
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+      server.closeIdleConnections();
+    });
+    await Promise.allSettled([db.end(), redis.quit(), queueConsumer.close()]);
+    logger.info('shutdown complete');
+    process.exit(0);
+  } catch (err) {
+    logger.error({ err }, 'error during shutdown');
+    process.exit(1);
+  }
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// 3.
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'uncaught exception');
+  Sentry.captureException(err);
+  Sentry.flush(2000).finally(() => process.exit(1)); // don't keep serving in an unknown state
+});
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ err: reason }, 'unhandled rejection');
+  throw reason; // send it to the uncaughtException path
+});
+// Don't: swallow the error and continue, or do slow async work without a timeout.
+```
+
+**Evaluation Criteria:**
+- Knows PM2/Forever/systemd and that containers delegate this to the orchestrator
+- Graceful shutdown in the right order: readiness off → stop accepting → drain → close resources → exit, with a timeout
+- Treats uncaughtException as fatal: log, report, exit, restart
+- Understands PM2 cluster mode and zero-downtime reload
+
+---
+
+### Question 77: Event Loop Monitoring & Profiling
+**Question:** How do you detect that the event loop is blocked? What is event loop lag/delay and utilization? Which tools do you use (perf_hooks, Clinic.js Doctor/Flame/Bubbleprof, N|Solid, `--prof`, heap snapshots)? How do you find a memory leak?
+
+**Expected Answer:**
+- **Symptoms of a blocked loop:** latency goes up for *all* requests, timeouts, health checks failing, low throughput while CPU is at 100% on one core
+- **Event loop delay (lag):** how late timers run compared to when they were scheduled. `perf_hooks.monitorEventLoopDelay()` gives a histogram (p50/p99/max). p99 above ~50–100 ms is a warning for an API
+- **Event loop utilization (ELU):** fraction of time the loop is busy (`performance.eventLoopUtilization()`). Near 1 means saturated. Better than CPU% for autoscaling Node
+- **Common blockers:** sync APIs (`fs.readFileSync`, `crypto.pbkdf2Sync`), huge `JSON.parse`/`stringify`, catastrophic regex backtracking, big loops/sorts, sync compression
+- **Tools:**
+    - **Clinic.js:** Doctor (diagnoses the problem type), Flame (CPU flame graph), Bubbleprof (async delays), HeapProfiler
+    - **N|Solid:** NodeSource's commercial runtime with production event loop, CPU and heap metrics
+    - `node --cpu-prof` / `--prof` + `--prof-process`, Chrome DevTools Performance tab, `0x`
+    - APMs: Datadog, New Relic, Elastic export event loop metrics
+- **Fixes:** move CPU work to worker threads, chunk work with `setImmediate`, stream instead of buffering, use async APIs, cache results
+- **Memory leaks:** watch heap growth after GC (`process.memoryUsage()`, `--trace-gc`), take heap snapshots (`v8.writeHeapSnapshot()`, `--heapsnapshot-signal=SIGUSR2`) some time apart, compare in DevTools (Comparison view, sort by delta/retained size), follow the retainers path to the code. Usual causes: growing caches/Maps, listeners not removed, closures, timers, global arrays
+
+**Code Challenge:**
+```javascript
+// 1. Measure event loop delay with perf_hooks.monitorEventLoopDelay and log p50/p99 every 10s
+// 2. Write an endpoint that blocks the loop (sync crypto or a big JSON.parse) and show how you'd find it in a flame graph
+// 3. Return 503 when event loop lag is above a threshold (load shedding)
+// 4. Take two heap snapshots and explain how to compare them to find a leak
+```
+
+**Expected Solution:**
+```javascript
+const { monitorEventLoopDelay, performance } = require('node:perf_hooks');
+const crypto = require('node:crypto');
+const v8 = require('node:v8');
+const express = require('express');
+const app = express();
+
+// 1.
+const histogram = monitorEventLoopDelay({ resolution: 20 });
+histogram.enable();
+let lastElu = performance.eventLoopUtilization();
+setInterval(() => {
+  const elu = performance.eventLoopUtilization(lastElu);
+  lastElu = performance.eventLoopUtilization();
+  logger.info({
+    p50ms: histogram.percentile(50) / 1e6,
+    p99ms: histogram.percentile(99) / 1e6,
+    maxms: histogram.max / 1e6,
+    elu: elu.utilization.toFixed(2),
+  }, 'event loop');
+  histogram.reset();
+}, 10_000).unref();
+
+// 3. Load shedding (register before the routes)
+app.use((req, res, next) => {
+  const p99ms = histogram.percentile(99) / 1e6;
+  if (p99ms > 200) return res.set('Retry-After', '1').sendStatus(503);
+  next();
+});
+// (packages: under-pressure for Fastify, toobusy-js)
+
+// 2.
+app.get('/hash', (req, res) => {
+  const hash = crypto.pbkdf2Sync(req.query.pw, 'salt', 500_000, 64, 'sha512'); // blocks ~hundreds of ms
+  res.send(hash.toString('hex'));
+});
+// npx clinic flame -- node server.js   (then load test: npx autocannon localhost:3000/hash?pw=x)
+// The flame graph shows a wide bar for pbkdf2Sync under the route handler → that's where time goes.
+// Fix: crypto.pbkdf2 (async, runs in the libuv threadpool) or a worker thread.
+
+// 4.
+app.post('/debug/heap', (req, res) => res.json({ file: v8.writeHeapSnapshot() })); // protect this in prod!
+// Take snapshot A → run traffic → take snapshot B → open both in Chrome DevTools (Memory tab).
+// Comparison view: sort by "# Delta" / "Size Delta"; objects that only grow are suspects.
+// Select one and read its "Retainers" path to see which variable/closure/Map keeps it alive.
+```
+
+**Evaluation Criteria:**
+- Knows how a blocked loop shows up and how to measure delay and ELU
+- Names concrete tools (Clinic, N|Solid, --cpu-prof, DevTools) and when to use each
+- Knows common blockers and their fixes
+- Can describe a heap snapshot comparison workflow for leaks
+- Considers load shedding / back-pressure
+
+---
+
+### Question 78: Node.js Framework Landscape
+**Question:** Compare Express, Fastify, Koa, Hapi, NestJS, Restify and Sails. Where do Next.js and Nuxt fit, and what about serverless frameworks (Serverless Framework, SST)? How do you choose a framework for a new backend service?
+
+**Expected Answer:**
+- **Express:** minimal, unopinionated, huge ecosystem, linear middleware. Express 5 handles rejected promises. Slower than Fastify, structure is up to you
+- **Fastify:** high performance (schema-based serialization), JSON Schema validation built in, encapsulated plugin system, hooks lifecycle, first-class TypeScript, pino logging
+- **Koa:** by the Express team; tiny core, `async` middleware with an "onion" model (`await next()` lets code run before and after downstream), context object. Bring your own router/body parser
+- **Hapi:** configuration-centric, strong built-in validation (Joi), auth, caching; popular in enterprise; smaller community today
+- **NestJS:** opinionated, Angular-inspired architecture: modules, controllers, providers, dependency injection, decorators, guards/pipes/interceptors. Runs on Express or Fastify. Great for big teams and consistent structure; more boilerplate
+- **Restify:** focused on REST APIs, DTrace support; mostly legacy now
+- **Sails:** Rails-like MVC with the Waterline ORM and blueprints; largely legacy
+- **Next.js / Nuxt:** full-stack meta-frameworks for React / Vue: SSR/SSG, file-based routing, API routes/server actions. Good for BFFs and web apps, not a replacement for a dedicated backend service
+- **Serverless frameworks:** Serverless Framework, SST, AWS SAM, Architect deploy functions + infra (IaC) to FaaS. Middy adds middleware for Lambda
+- **Choosing:** team experience, performance needs, need for structure/DI (NestJS for big teams), ecosystem/plugins, TypeScript support, long-term maintenance, deployment target (Lambda vs containers)
+
+**Code Challenge:**
+```javascript
+// Implement GET /users/:id with JSON schema validation of the param in:
+// 1. Express
+// 2. Fastify (with a route schema)
+// 3. NestJS (controller + service + DTO with class-validator)
+// Then: explain middleware in Express vs Koa (onion model) vs Fastify hooks
+```
+
+**Expected Solution:**
+```javascript
+// 1. Express
+const express = require('express');
+const app = express();
+app.get('/users/:id', async (req, res, next) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+  try {
+    const user = await usersService.findById(id);
+    if (!user) return res.sendStatus(404);
+    res.json(user);
+  } catch (err) { next(err); }
+});
+
+// 2. Fastify
+const fastify = require('fastify')({ logger: true });
+fastify.get('/users/:id', {
+  schema: {
+    params: {
+      type: 'object',
+      properties: { id: { type: 'integer', minimum: 1 } },
+      required: ['id'],
+    },
+    response: {
+      200: { type: 'object', properties: { id: { type: 'integer' }, email: { type: 'string' } } },
+    },
+  },
+}, async (request, reply) => {
+  const user = await usersService.findById(request.params.id); // already coerced to integer
+  if (!user) return reply.code(404).send();
+  return user; // serialized with the response schema (fast, and drops extra fields)
+});
+
+// 3. NestJS (TypeScript)
+/*
+class GetUserParams {
+  @Type(() => Number) @IsInt() @Min(1)
+  id: number;
+}
+
+@Injectable()
+export class UsersService {
+  constructor(private readonly repo: UsersRepository) {}
+  findById(id: number) { return this.repo.findOne(id); }
+}
+
+@Controller('users')
+export class UsersController {
+  constructor(private readonly users: UsersService) {}
+
+  @Get(':id')
+  async getOne(@Param() { id }: GetUserParams) {
+    const user = await this.users.findById(id);
+    if (!user) throw new NotFoundException();
+    return user;
+  }
+}
+// main.ts: app.useGlobalPipes(new ValidationPipe({ transform: true }));
+*/
+
+// Middleware models:
+// Express: linear chain, next() passes control; no clean "after" hook (use res.on('finish')).
+// Koa: onion — code after `await next()` runs on the way back out:
+//   app.use(async (ctx, next) => { const t = Date.now(); await next(); ctx.set('X-Time', `${Date.now() - t}ms`); });
+// Fastify: lifecycle hooks (onRequest, preValidation, preHandler, onSend, onResponse) scoped per plugin.
+```
+
+**Evaluation Criteria:**
+- Accurate trade-offs for the main frameworks (not just "Fastify is faster")
+- Knows where Next/Nuxt and serverless frameworks fit
+- Working validation in Express, Fastify schema and Nest DTO + ValidationPipe
+- Explains the middleware models (linear vs onion vs hooks)
+- Gives a reasoned choice process
+
+---
+
+### Question 79: HTTP Optimization, CORS & HTTP/2
+**Question:** How do you optimize HTTP APIs? Explain HTTP caching (Cache-Control, ETag, Last-Modified, 304), compression (gzip, Brotli), and CORS (simple vs preflight requests, credentials). What does HTTP/2 change compared with HTTP/1.1, and what is HTTP/3?
+
+**Expected Answer:**
+- **Cache-Control:** `max-age` (seconds fresh), `s-maxage` (CDN/shared caches), `public`/`private`, `no-cache` (store but revalidate every time), `no-store` (never store, for sensitive data), `immutable` (hashed static assets), `stale-while-revalidate`
+- **Validation:** `ETag` (content hash) + `If-None-Match`, or `Last-Modified` + `If-Modified-Since` → server answers **304 Not Modified** with no body. Saves bandwidth, not the request. `Vary` (e.g. `Accept-Encoding`, `Authorization`) tells caches which headers change the response
+- **Compression:** gzip is universal; Brotli compresses ~15–20% better for text. Negotiated via `Accept-Encoding`/`Content-Encoding`. Skip tiny responses and already-compressed formats (images). Better done at the proxy/CDN (Nginx) than in Node, since it uses CPU
+- **CORS:** a browser rule. Cross-origin JS can read a response only if the server allows its origin (`Access-Control-Allow-Origin`)
+    - **Simple requests** (GET/HEAD/POST with simple headers and form content types) go straight out
+    - Otherwise the browser sends a **preflight** `OPTIONS` with `Access-Control-Request-Method/Headers`; server answers with allowed methods/headers and `Access-Control-Max-Age` to cache it
+    - **Credentials** (cookies): needs `Access-Control-Allow-Credentials: true` and a specific origin, never `*`
+    - CORS doesn't protect the server: curl ignores it. It's not authentication
+- **HTTP/2:** binary framing, **multiplexing** many requests over one TCP connection (no more domain sharding / bundling for that reason), HPACK header compression, stream priorities. Server push is deprecated. Still has TCP head-of-line blocking on packet loss
+- **HTTP/3:** runs on QUIC (UDP): no TCP head-of-line blocking, faster handshakes (0-RTT/1-RTT with TLS 1.3 built in), connection migration across networks
+- Other optimizations: keep-alive, pagination, field selection, CDN, avoiding over-fetching, `Idempotency-Key` for retries
+
+**Code Challenge:**
+```javascript
+// In Express:
+// 1. Configure CORS for two allowed origins with credentials, without using '*'
+// 2. Serve GET /products with Cache-Control and an ETag, and return 304 when it matches
+// 3. Enable compression only for responses above 1 KB
+// 4. Explain why a browser sends OPTIONS before your PUT request
+```
+
+**Expected Solution:**
+```javascript
+const express = require('express');
+const cors = require('cors');
+const compression = require('compression');
+const crypto = require('node:crypto');
+const app = express();
+
+// 1.
+const allowed = new Set(['https://shop.example.com', 'https://admin.example.com']);
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin || allowed.has(origin)) return cb(null, origin || false); // no Origin = same-origin / server-to-server
+    cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 600, // cache preflight 10 minutes
+}));
+// cors sets `Vary: Origin` so caches don't mix responses between origins
+
+// 3.
+app.use(compression({ threshold: 1024 }));
+
+// 2.
+app.get('/products', async (req, res) => {
+  const products = await productsService.list();
+  const body = JSON.stringify(products);
+  const etag = `"${crypto.createHash('sha1').update(body).digest('base64')}"`;
+
+  res.set({ 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300', ETag: etag });
+  if (req.get('If-None-Match') === etag) return res.status(304).end();
+  res.type('application/json').send(body);
+});
+// (Express already sends weak ETags and handles 304 via req.fresh; this shows the mechanics.)
+
+// 4. PUT is not a "simple" method, and a JSON Content-Type / Authorization header isn't a simple header,
+//    so the browser first asks the server (OPTIONS preflight) whether this origin may send it.
+//    If the preflight response doesn't allow it, the real request is never sent.
+```
+
+**Evaluation Criteria:**
+- Knows Cache-Control directives, ETag/304 flow and Vary
+- Knows where to do compression and its CPU trade-off
+- Explains simple vs preflighted requests and the credentials + `*` restriction; knows CORS isn't a server-side protection
+- Clear HTTP/1.1 → HTTP/2 → HTTP/3 differences (multiplexing, HPACK, QUIC)
+
+---
+
+## 8.8 Databases (syllabus)
+
+### Question 80: ETL & Data Warehousing
+**Question:** What is the difference between OLTP and OLAP? What is a data warehouse, and how does it differ from a data lake? Explain ETL vs ELT, star and snowflake schemas, and fact vs dimension tables.
+
+**Expected Answer:**
+- **OLTP:** the app's operational DB: many small, fast reads/writes, normalized, row-oriented (PostgreSQL, MySQL). **OLAP:** analytics: few large scans and aggregations over history, denormalized, column-oriented (Redshift, BigQuery, Snowflake, ClickHouse)
+- Don't run heavy reports on the production OLTP DB; use a read replica or a warehouse
+- **Data warehouse:** structured, cleaned, modeled data for BI/reporting (schema-on-write). **Data lake:** raw files of any format in cheap object storage (S3), schema-on-read. **Lakehouse:** table formats (Iceberg, Delta) add warehouse features on top of a lake
+- **ETL:** Extract → Transform (outside, e.g. in a Node/Spark job) → Load. **ELT:** load raw data first, transform inside the warehouse with SQL (dbt). ELT is the modern default because warehouses scale compute cheaply
+- **Star schema:** a central **fact table** (measurable events: sales, with foreign keys + numeric measures like quantity, amount) surrounded by **dimension tables** (descriptive context: date, customer, product, store). **Snowflake schema:** dimensions normalized into sub-dimensions (fewer duplicates, more joins)
+- **Slowly changing dimensions:** Type 1 overwrite, Type 2 add a new row with valid_from/valid_to to keep history
+- **Pipelines:** batch (nightly) vs streaming/CDC (Debezium, Kafka, DMS); orchestrated with Airflow, Step Functions, etc. Jobs must be **incremental** (watermark on `updated_at` or CDC) and **idempotent** (upsert / MERGE, so reruns don't duplicate data)
+
+**Code Challenge:**
+```javascript
+// 1. Design a star schema for e-commerce sales (fact_sales + dimensions)
+// 2. Write a Node.js ETL job that streams orders from PostgreSQL, transforms them, and loads them in batches into the warehouse
+// 3. Make the job incremental (only rows changed since the last run) and idempotent
+```
+
+**Expected Solution:**
+```sql
+-- 1.
+CREATE TABLE dim_date     (date_key INT PRIMARY KEY, date DATE, month INT, quarter INT, year INT, is_weekend BOOLEAN);
+CREATE TABLE dim_customer (customer_key SERIAL PRIMARY KEY, customer_id INT, country TEXT, segment TEXT,
+                           valid_from TIMESTAMP, valid_to TIMESTAMP);            -- SCD type 2
+CREATE TABLE dim_product  (product_key SERIAL PRIMARY KEY, product_id INT, name TEXT, category TEXT, brand TEXT);
+CREATE TABLE fact_sales (
+  order_item_id BIGINT PRIMARY KEY,           -- natural key → idempotent upserts
+  date_key INT REFERENCES dim_date,
+  customer_key INT REFERENCES dim_customer,
+  product_key INT REFERENCES dim_product,
+  quantity INT,
+  unit_price NUMERIC(12,2),
+  revenue NUMERIC(12,2)
+);
+```
+```javascript
+// 2 + 3.
+const { Pool } = require('pg');
+const QueryStream = require('pg-query-stream');
+const { pipeline } = require('node:stream/promises');
+const { Writable } = require('node:stream');
+
+const source = new Pool({ connectionString: process.env.OLTP_URL });
+const warehouse = new Pool({ connectionString: process.env.DWH_URL });
+
+async function runEtl() {
+  const { rows: [state] } = await warehouse.query(
+    `SELECT last_synced_at FROM etl_state WHERE job = 'sales'`);
+  const since = state?.last_synced_at ?? new Date(0);
+  const runStartedAt = new Date();
+
+  const client = await source.connect();
+  try {
+    const stream = client.query(new QueryStream(
+      `SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.unit_price,
+              o.customer_id, o.created_at
+       FROM order_items oi JOIN orders o ON o.id = oi.order_id
+       WHERE o.updated_at > $1 AND o.updated_at <= $2
+       ORDER BY o.updated_at`, [since, runStartedAt]));
+
+    let batch = [];
+    const flush = async () => {
+      if (!batch.length) return;
+      const values = [];
+      const placeholders = batch.map((r, i) => {
+        values.push(r.order_item_id, r.date_key, r.customer_id, r.product_id, r.quantity, r.unit_price, r.revenue);
+        const b = i * 7;
+        return `($${b + 1}, $${b + 2}, (SELECT customer_key FROM dim_customer WHERE customer_id = $${b + 3} AND valid_to IS NULL),
+                 (SELECT product_key FROM dim_product WHERE product_id = $${b + 4}), $${b + 5}, $${b + 6}, $${b + 7})`;
+      });
+      await warehouse.query(
+        `INSERT INTO fact_sales (order_item_id, date_key, customer_key, product_key, quantity, unit_price, revenue)
+         VALUES ${placeholders.join(',')}
+         ON CONFLICT (order_item_id) DO UPDATE
+           SET quantity = EXCLUDED.quantity, unit_price = EXCLUDED.unit_price, revenue = EXCLUDED.revenue`,
+        values);
+      batch = [];
+    };
+
+    await pipeline(stream, new Writable({
+      objectMode: true,
+      async write(row, _enc, cb) {
+        try {
+          // Transform
+          batch.push({
+            order_item_id: row.id,
+            date_key: Number(row.created_at.toISOString().slice(0, 10).replaceAll('-', '')), // 20261028
+            customer_id: row.customer_id,
+            product_id: row.product_id,
+            quantity: row.quantity,
+            unit_price: row.unit_price,
+            revenue: row.quantity * Number(row.unit_price),
+          });
+          if (batch.length >= 1000) await flush();
+          cb();
+        } catch (err) { cb(err); }
+      },
+      async final(cb) {
+        try { await flush(); cb(); } catch (err) { cb(err); }
+      },
+    }));
+
+    // Move the watermark only after a successful load
+    await warehouse.query(
+      `INSERT INTO etl_state (job, last_synced_at) VALUES ('sales', $1)
+       ON CONFLICT (job) DO UPDATE SET last_synced_at = EXCLUDED.last_synced_at`, [runStartedAt]);
+  } finally {
+    client.release();
+  }
+}
+// Incremental: watermark on updated_at. Idempotent: upsert on the natural key, so a rerun of the
+// same window overwrites instead of duplicating. Streaming + batches keeps memory flat.
+```
+
+**Evaluation Criteria:**
+- Clear OLTP vs OLAP (row vs column storage, workload) distinction
+- Knows warehouse vs lake, ETL vs ELT and why ELT is common now
+- Correct star schema: facts with measures and FKs, descriptive dimensions; knows SCD type 2
+- ETL job streams, batches, is incremental (watermark/CDC) and idempotent (upsert)
+
+---
+
+## 8.9 Docker & Kubernetes (syllabus)
+
+### Question 81: Deployment Strategies & Load Balancing
+**Question:** What are the options for deploying a Node.js app: a server behind Nginx, containers (Docker/Kubernetes), or serverless (FaaS)? What are the trade-offs? What does a reverse proxy do? Explain load-balancing algorithms, health checks, sticky sessions, and L4 vs L7 load balancers.
+
+**Expected Answer:**
+- **VM/server + Nginx + PM2/systemd:** full control, cheap at steady load, simple; but you patch the OS, scale by hand, and environments drift
+- **Containers (Docker on ECS/Kubernetes):** same image everywhere, autoscaling, rolling deploys, good for long-running services and WebSockets; more platform complexity
+- **Serverless/FaaS (Lambda, Cloud Functions):** no servers, scale to zero, pay per request; but cold starts, time limits (15 min), no persistent connections (DB connection pooling needs RDS Proxy), vendor lock-in, expensive at high steady load
+- **Reverse proxy (Nginx, Envoy, Traefik, HAProxy):** sits in front of the app: TLS termination, load balancing, compression, caching, static files, rate limiting, request size limits, buffering slow clients so Node doesn't hold connections
+- **Algorithms:** round robin, weighted round robin, least connections, IP hash, random/power-of-two choices, least response time
+- **Health checks:** active (LB polls `/health`) and passive (mark a backend down after errors); remove unhealthy instances
+- **Sticky sessions:** route a client to the same instance (cookie or IP hash). Needed for in-memory sessions or Socket.IO polling; better to make the app stateless (sessions in Redis) so any instance can serve any request
+- **L4 vs L7:** L4 (TCP/UDP: AWS NLB) routes by IP/port, very fast, can't see HTTP. L7 (HTTP: ALB, Nginx) routes by host/path/headers, terminates TLS, does retries, can inspect content
+- **Behind a proxy:** `app.set('trust proxy', 1)` so `req.ip`/`req.protocol` come from `X-Forwarded-*`; keep-alive timeouts in Node must be longer than the LB's idle timeout
+- Deployment strategies: rolling, blue-green, canary (see Q47)
+
+**Code Challenge:**
+```nginx
+# 1. Write an Nginx config that reverse-proxies to 3 Node.js instances (least_conn), sets X-Forwarded-* headers, and serves static files
+# 2. Add TLS termination and gzip
+# 3. Add WebSocket support
+# 4. Explain what changes in the app when it sits behind a proxy (trust proxy, real client IP)
+```
+
+**Expected Solution:**
+```nginx
+# 1-3.
+upstream api_backend {
+    least_conn;
+    server 127.0.0.1:3001 max_fails=3 fail_timeout=10s;
+    server 127.0.0.1:3002 max_fails=3 fail_timeout=10s;
+    server 127.0.0.1:3003 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      '';
+}
+
+server {
+    listen 80;
+    server_name shop.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name shop.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/shop.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shop.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    gzip on;
+    gzip_types application/json text/css application/javascript;
+    gzip_min_length 1024;
+
+    client_max_body_size 5m;
+
+    location /static/ {
+        root /var/www/shop;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location / {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # WebSocket upgrade (and keep-alive to upstream when not upgrading)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 60s;
+    }
+}
+```
+```javascript
+// 4.
+app.set('trust proxy', 1); // trust one hop: req.ip = real client, req.protocol = 'https', secure cookies work
+// Without it: every request looks like it comes from 127.0.0.1 → rate limiting per IP breaks,
+// and `secure` cookies aren't set because Express thinks the request is plain HTTP.
+const server = app.listen(3001);
+server.keepAliveTimeout = 65_000; // longer than the LB idle timeout (ALB default 60s) to avoid 502s
+server.headersTimeout = 66_000;
+```
+
+**Evaluation Criteria:**
+- Compares server, container and FaaS deployments with real trade-offs
+- Knows what a reverse proxy offloads from Node
+- Names LB algorithms, health checks, and prefers stateless apps over sticky sessions
+- Clear L4 vs L7 distinction
+- Working Nginx config incl. headers, TLS, WebSocket; knows `trust proxy` and keep-alive timeouts
+
+---
+
+## 8.10 CI/CD & Teamwork (syllabus)
+
+### Question 82: Code Quality Gates & Code Review
+**Question:** How do you enforce code quality in a team? Explain ESLint vs Prettier, pre-commit hooks (husky, lint-staged), coverage configuration and thresholds, and quality gates in CI. What do you look for in a code review, and how do you give good review feedback?
+
+**Expected Answer:**
+- **ESLint:** static analysis for bugs and code patterns (unused vars, no-floating-promises with typescript-eslint, security plugins). **Prettier:** formatting only. Let Prettier own formatting and turn off ESLint's style rules (`eslint-config-prettier`) so they don't fight. Biome is a newer all-in-one alternative
+- ESLint 9 uses flat config (`eslint.config.js`)
+- **Pre-commit hooks:** husky installs git hooks; lint-staged runs linters/formatters only on staged files (fast). Hooks can be skipped (`--no-verify`), so CI must run the same checks
+- **Coverage:** Jest/Vitest/c8 collect line/branch/function/statement coverage; `coverageThreshold` fails the run below a target. Coverage shows what's *not* tested, not test quality; 100% isn't the goal. Thresholds stop regressions
+- **CI quality gates** (required before merge): lint, type check (`tsc --noEmit`), tests + coverage, build, dependency audit (`npm audit`, Snyk/Dependabot), secret scanning, SAST (CodeQL, Sonar). Branch protection: required checks + required reviews
+- **Code review, what to look for:** correctness and edge cases, security (injection, authz, secrets, validation), error handling, tests for the change, performance (N+1, unbounded queries), API/contract and migration safety, readability and naming, consistency with the codebase, observability (logs/metrics)
+- **How:** small PRs with a clear description; review fast; separate blocking issues from suggestions/nits (prefix `nit:`); explain *why* and propose an alternative; ask questions instead of accusing; praise good work; automate style so humans review logic
+
+**Code Challenge:**
+```javascript
+// 1. Write an eslint.config.js (flat config) for a Node.js + TypeScript project with Prettier
+// 2. Set up husky + lint-staged so only staged files are linted and formatted on commit
+// 3. Configure Jest coverage with an 80% threshold that fails CI
+// 4. Review this PR snippet and write 3 review comments:
+app.get('/user', async (req, res) => {
+  const user = await db.query(`SELECT * FROM users WHERE id = ${req.query.id}`);
+  res.send(user);
+});
+```
+
+**Expected Solution:**
+```javascript
+// 1. eslint.config.js
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import prettier from 'eslint-config-prettier';
+import globals from 'globals';
+
+export default tseslint.config(
+  { ignores: ['dist/**', 'coverage/**'] },
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  {
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: { projectService: true },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      'no-console': ['warn', { allow: ['error'] }],
+    },
+  },
+  prettier, // last: turns off rules that conflict with Prettier
+);
+
+// 2. package.json
+// "scripts": { "prepare": "husky" },
+// "lint-staged": {
+//   "*.{ts,js}": ["eslint --fix", "prettier --write"],
+//   "*.{json,md,yml}": ["prettier --write"]
+// }
+// .husky/pre-commit:
+//   npx lint-staged
+
+// 3. jest.config.js
+module.exports = {
+  collectCoverage: true,
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/**/index.ts'],
+  coverageReporters: ['text-summary', 'lcov'],
+  coverageThreshold: {
+    global: { branches: 80, functions: 80, lines: 80, statements: 80 },
+  },
+};
+// CI: npm run lint && npx tsc --noEmit && npm test   (any failure blocks the merge)
+
+// 4. Review comments:
+// 🔴 Blocking (security): SQL injection. `req.query.id` goes straight into the query.
+//    Use a parameterized query: db.query('SELECT ... WHERE id = $1', [id]).
+// 🔴 Blocking: no validation or 404. Validate that id is a positive integer (400 otherwise),
+//    and return 404 when no user is found. Also no error handling: wrap in try/catch or use the async error wrapper.
+// 🟡 Suggestion: `SELECT *` returns password hashes and internal fields to the client.
+//    Select explicit columns or map to a response DTO. Also, REST naming: GET /users/:id.
+```
+
+**Evaluation Criteria:**
+- Knows ESLint vs Prettier roles and how to make them coexist
+- Uses lint-staged + husky and still enforces checks in CI
+- Sets coverage thresholds and understands the limits of coverage
+- Lists sensible CI quality gates and branch protection
+- Review comments catch the SQL injection, data exposure and validation issues, and are constructive and prioritized
+
+---
+
+### Question 83: Agile & Scrum
+**Question:** What are the Agile values? Explain Scrum roles, events (sprint planning, daily, review, retrospective) and artifacts (product backlog, sprint backlog, increment). What is the Definition of Done? How does Kanban differ from Scrum? Which tools have you used (Jira, Linear, etc.)?
+
+**Expected Answer:**
+- **Agile Manifesto values:** individuals and interactions over processes and tools; working software over comprehensive documentation; customer collaboration over contract negotiation; responding to change over following a plan (the right side still has value). Deliver small increments often and adapt using feedback
+- **Scrum roles (accountabilities):**
+    - **Product Owner:** maximizes product value; owns and orders the product backlog
+    - **Scrum Master:** coaches the team on Scrum, removes impediments, facilitates (servant leader, not a project manager)
+    - **Developers:** the cross-functional team that builds the increment and owns the sprint plan
+- **Events:** the **Sprint** (fixed 1–4 weeks) contains: **Sprint Planning** (why/what/how: sprint goal + selected items + plan), **Daily Scrum** (15 min, developers inspect progress toward the goal and adapt; not a status report to a manager), **Sprint Review** (demo the increment to stakeholders, adapt the backlog), **Retrospective** (improve how the team works). Backlog refinement is an ongoing activity
+- **Artifacts + commitments:** Product Backlog (→ Product Goal), Sprint Backlog (→ Sprint Goal), Increment (→ Definition of Done)
+- **Definition of Done:** shared quality checklist every item must meet to count as done (code reviewed, tests passing, coverage, deployed to staging, docs updated, acceptance criteria met). Different from acceptance criteria, which are per story
+- **Estimation:** story points (relative effort, Fibonacci, planning poker), velocity for forecasting, not as a performance metric
+- **Kanban:** continuous flow, no fixed sprints, no prescribed roles; visualize the board, **limit work in progress (WIP)**, measure lead/cycle time and throughput. Good for support/ops/unpredictable work. Scrumban mixes both
+- **Tools:** Jira, Linear, Azure DevOps, GitHub Projects, Trello; link tickets to branches/PRs; dashboards for burndown/cycle time
+- **Senior signal:** has real examples: how they split stories, dealt with scope creep mid-sprint, raised a blocker, or used a retro to fix a recurring problem
+
+**Evaluation Criteria:**
+- States the Agile values and the idea of short feedback loops
+- Correct Scrum roles, events and artifacts, including what each event is for
+- Knows the Definition of Done vs acceptance criteria
+- Clear Scrum vs Kanban comparison (timeboxes vs flow, WIP limits)
+- Uses concrete experience, not just textbook definitions
+
+---
+
+## 8.11 Design Patterns & Architecture
+
+### Question 84: Creational Patterns & Dependency Injection
+**Question:** Explain the Factory, Abstract Factory and Singleton patterns. How does Node's module cache act as a singleton, and what are the downsides of singletons? What is dependency injection, and how does it help testing (manual DI vs containers like NestJS, awilix, inversify)?
+
+**Expected Answer:**
+- **Factory (method/simple factory):** a function or method decides which concrete class to create based on input, so callers depend on an interface, not on `new ConcreteClass()`. Adding a type changes one place
+- **Abstract Factory:** creates **families** of related objects that must be used together (e.g. AWS queue + AWS storage vs local queue + local storage) without naming concrete classes
+- **Singleton:** exactly one instance with global access (config, connection pool, logger). In Node, a module's exports are cached after the first `require`/`import`, so `module.exports = new Pool()` is already a singleton per process (caveats: different resolved paths or duplicate package copies give separate instances; cluster/workers each have their own)
+- **Singleton downsides:** hidden global state, hidden dependencies, hard to replace in tests, import-order/initialization problems, shared mutable state
+- **Dependency Injection:** a class receives its dependencies (constructor/params) instead of creating them. Follows Dependency Inversion (depend on abstractions). Benefits: testability (inject fakes), swappable implementations, explicit dependencies, a single "composition root" that wires everything
+- **Manual DI** (factory functions at startup) is often enough in Node. **Containers:** NestJS (built-in, decorators, scopes), awilix (no decorators, register + resolve), inversify (decorators + reflect-metadata, TS). Containers manage lifetimes (singleton, scoped per request, transient)
+- **Builder** (step-by-step construction, e.g. query builders) and **Prototype** (`Object.create`, clone) are the other creational patterns
+
+**Code Challenge:**
+```javascript
+// 1. Write a NotificationFactory that creates Email, SMS or Push senders from a type string
+// 2. Write an Abstract Factory that creates a matching { queue, storage } pair for 'aws' or 'local'
+// 3. Write a DB connection singleton two ways (module cache and class) and explain the testing problem
+// 4. Refactor a UserService that does `new PostgresRepo()` internally to receive its repo by constructor injection, then test it with a fake
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+class EmailSender { send(to, msg) { /* SES/SMTP */ return `email to ${to}`; } }
+class SmsSender   { send(to, msg) { /* Twilio */   return `sms to ${to}`; } }
+class PushSender  { send(to, msg) { /* FCM */      return `push to ${to}`; } }
+
+const senders = { email: EmailSender, sms: SmsSender, push: PushSender };
+function createNotificationSender(type) {
+  const Sender = senders[type];
+  if (!Sender) throw new Error(`Unknown notification type: ${type}`);
+  return new Sender();
+}
+
+// 2.
+const awsFactory = {
+  createQueue: () => new SqsQueue(process.env.QUEUE_URL),
+  createStorage: () => new S3Storage(process.env.BUCKET),
+};
+const localFactory = {
+  createQueue: () => new InMemoryQueue(),
+  createStorage: () => new DiskStorage('./tmp'),
+};
+function createInfrastructure(env) {
+  const factory = env === 'aws' ? awsFactory : localFactory;
+  return { queue: factory.createQueue(), storage: factory.createStorage() }; // always a matching pair
+}
+
+// 3a. Module cache singleton (db.js)
+const { Pool } = require('pg');
+module.exports = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// 3b. Class singleton
+class Database {
+  static #instance;
+  static getInstance() {
+    if (!Database.#instance) Database.#instance = new Pool({ connectionString: process.env.DATABASE_URL });
+    return Database.#instance;
+  }
+}
+// Testing problem: any module that requires db.js gets the real pool; you need jest.mock or
+// module patching to replace it, and state leaks between tests. DI avoids that.
+
+// 4.
+// Before
+class UserServiceBefore {
+  constructor() { this.repo = new PostgresRepo(); } // hard-wired, untestable without a DB
+}
+
+// After
+class UserService {
+  constructor({ userRepo, mailer }) {
+    this.userRepo = userRepo;
+    this.mailer = mailer;
+  }
+  async register(email) {
+    if (await this.userRepo.findByEmail(email)) throw new Error('Email taken');
+    const user = await this.userRepo.create({ email });
+    await this.mailer.send(email, 'Welcome!');
+    return user;
+  }
+}
+
+// Composition root (app startup)
+const userService = new UserService({ userRepo: new PostgresRepo(pool), mailer: new EmailSender() });
+
+// Test with fakes
+test('register rejects duplicate emails', async () => {
+  const fakeRepo = { findByEmail: async () => ({ id: 1 }), create: jest.fn() };
+  const service = new UserService({ userRepo: fakeRepo, mailer: { send: jest.fn() } });
+  await expect(service.register('a@b.com')).rejects.toThrow('Email taken');
+  expect(fakeRepo.create).not.toHaveBeenCalled();
+});
+```
+
+**Evaluation Criteria:**
+- Clear Factory vs Abstract Factory distinction (one product vs a family)
+- Knows Node's module cache singleton and its caveats
+- Explains singleton downsides, especially for testing
+- Refactors to constructor injection and tests with fakes
+- Knows when a DI container is worth it vs manual wiring
+
+---
+
+### Question 85: Structural Patterns
+**Question:** Explain the Adapter, Decorator, Facade, Proxy and Module patterns. What is a mixin, and how does it compare to inheritance? Give a real Node.js example of each.
+
+**Expected Answer:**
+- **Adapter:** converts one interface into the one the client expects. Wrap a third-party/legacy API (callback SDK → promises, `util.promisify`, different payment providers behind one `PaymentGateway` interface). Lets you swap vendors
+- **Decorator:** adds behavior to an object/function without changing it, by wrapping it with the same interface. Higher-order functions (`withRetry(fn)`), Express middleware, TS/NestJS decorators (`@UseGuards`). Stacks well
+- **Facade:** one simple entry point over a complex subsystem (`orderFacade.placeOrder()` coordinating inventory, payments, email). Reduces coupling for callers
+- **Proxy:** same interface as the real object, controls access to it: lazy loading, caching, access control, logging, validation. JS has a built-in `Proxy` object with traps (`get`, `set`, `apply`)
+- **Adapter vs Decorator vs Proxy:** adapter changes the interface; decorator keeps it and adds behavior; proxy keeps it and controls access
+- **Module pattern:** encapsulate private state and expose a public API: historically IIFE + closure, today ES/CommonJS modules (file scope is private, `export` is public)
+- **Mixin:** copies a set of methods into a class/object (`Object.assign(Class.prototype, mixin)` or class-factory mixins `const Timestamped = (Base) => class extends Base {...}`). Shares behavior across unrelated classes without a deep hierarchy ("has-behavior" instead of "is-a"). Risks: name collisions, unclear origin of methods. Composition is usually preferred over both inheritance and mixins
+
+**Code Challenge:**
+```javascript
+// 1. Adapter: wrap a legacy callback-based payment SDK so it fits a promise-based PaymentGateway interface
+// 2. Decorator: add retry and logging to any async function without changing it (withRetry(withLogging(fn)))
+// 3. Facade: an OrderFacade.placeOrder() that hides inventory, payment and email services
+// 4. Proxy: a cache proxy around a slow repository using JS Proxy
+// 5. Mixin: add Serializable and Timestamped behavior to a class
+```
+
+**Expected Solution:**
+```javascript
+// 1. Adapter
+class LegacyPayAdapter {
+  constructor(legacySdk) { this.sdk = legacySdk; }
+  charge({ amount, currency, token }) {
+    return new Promise((resolve, reject) => {
+      // legacy: sdk.makePayment(cents, cur, card, (err, txId) => ...)
+      this.sdk.makePayment(Math.round(amount * 100), currency, token, (err, txId) =>
+        err ? reject(err) : resolve({ id: txId, status: 'succeeded' }));
+    });
+  }
+}
+// StripeAdapter, LegacyPayAdapter, ... all expose charge() → callers don't care which one
+
+// 2. Decorators
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const withLogging = (fn, name = fn.name) => async (...args) => {
+  const start = Date.now();
+  try {
+    const result = await fn(...args);
+    console.log(`${name} ok in ${Date.now() - start}ms`);
+    return result;
+  } catch (err) {
+    console.error(`${name} failed: ${err.message}`);
+    throw err;
+  }
+};
+const withRetry = (fn, { retries = 3, baseMs = 100 } = {}) => async (...args) => {
+  for (let attempt = 0; ; attempt++) {
+    try { return await fn(...args); } catch (err) {
+      if (attempt >= retries) throw err;
+      await sleep(baseMs * 2 ** attempt);
+    }
+  }
+};
+const fetchUser = withRetry(withLogging(async (id) => api.get(`/users/${id}`), 'fetchUser'));
+
+// 3. Facade
+class OrderFacade {
+  constructor({ inventory, payments, mailer }) { Object.assign(this, { inventory, payments, mailer }); }
+  async placeOrder({ userEmail, items, paymentToken }) {
+    await this.inventory.reserve(items);
+    try {
+      const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+      const payment = await this.payments.charge({ amount: total, currency: 'USD', token: paymentToken });
+      await this.mailer.send(userEmail, `Order confirmed: ${payment.id}`);
+      return { paymentId: payment.id, total };
+    } catch (err) {
+      await this.inventory.release(items);
+      throw err;
+    }
+  }
+}
+
+// 4. Proxy
+function withCache(repo, ttlMs = 60_000) {
+  const cache = new Map();
+  return new Proxy(repo, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== 'function' || !String(prop).startsWith('find')) return value;
+      return async (...args) => {
+        const key = `${String(prop)}:${JSON.stringify(args)}`;
+        const hit = cache.get(key);
+        if (hit && hit.expires > Date.now()) return hit.value;
+        const result = await value.apply(target, args);
+        cache.set(key, { value: result, expires: Date.now() + ttlMs });
+        return result;
+      };
+    },
+  });
+}
+const productRepo = withCache(new ProductRepo(db));
+
+// 5. Mixins (class-factory style)
+const Serializable = (Base) => class extends Base {
+  toJSON() { return { type: this.constructor.name, ...this }; }
+};
+const Timestamped = (Base) => class extends Base {
+  constructor(...args) { super(...args); this.createdAt = new Date(); }
+  touch() { this.updatedAt = new Date(); }
+};
+class Entity {}
+class Product extends Serializable(Timestamped(Entity)) {
+  constructor(name) { super(); this.name = name; }
+}
+```
+
+**Evaluation Criteria:**
+- Explains intent of each pattern and distinguishes adapter vs decorator vs proxy
+- Gives real Node examples (promisify, middleware, JS Proxy)
+- Working, composable function decorators
+- Facade handles compensation on failure
+- Knows mixin trade-offs and prefers composition
+
+---
+
+### Question 86: Behavioral Patterns
+**Question:** Explain the Strategy, Observer, Mediator and Chain of Responsibility patterns. Where do you see them in Node.js (EventEmitter, Express middleware)? When does a pattern become over-engineering?
+
+**Expected Answer:**
+- **Strategy:** a family of interchangeable algorithms behind one interface, chosen at runtime (pricing rules, payment providers, auth strategies in Passport.js, compression algorithms). Replaces growing `switch`/`if` chains; follows open/closed
+- **Observer:** subjects notify subscribed observers when something happens; one-to-many, loose coupling. Node: `EventEmitter`, streams, DOM events; across services it becomes pub/sub. Watch out for leaks (unremoved listeners) and hidden control flow
+- **Mediator:** objects talk through a central mediator instead of to each other, turning many-to-many links into one-to-many. Chat rooms, UI form coordination, an in-process command bus (MediatR-style), air-traffic-control analogy. Risk: the mediator becomes a god object
+- **Chain of Responsibility:** a request passes along a chain of handlers; each one handles it, passes it on, or stops it. Express/Koa middleware (`next()`), validation pipelines, approval workflows, logging levels
+- **Observer vs Mediator:** observer broadcasts to anyone listening; mediator coordinates specific participants with knowledge of the interaction
+- Others worth naming: Command (encapsulate a request: queues, undo), State (behavior changes with state: order status machine), Template Method, Iterator (JS iterators)
+- **Over-engineering:** applying a pattern before there's variation to manage, layers of indirection with a single implementation, patterns used to look smart. Start simple and refactor to a pattern when the second or third case shows up (rule of three); in JS a plain function or object map is often the whole pattern
+
+**Code Challenge:**
+```javascript
+// 1. Strategy: replace a big switch on shippingType with pluggable pricing strategies
+// 2. Observer: an order system where inventory, email and analytics subscribe to 'order:placed'
+// 3. Chain of Responsibility: an approval chain (manager < $1k, director < $10k, CEO otherwise)
+// 4. Mediator: a chat room that routes messages between users without users knowing each other
+```
+
+**Expected Solution:**
+```javascript
+// 1. Strategy
+const shippingStrategies = {
+  standard: ({ weightKg }) => 5 + weightKg * 0.5,
+  express:  ({ weightKg }) => 15 + weightKg * 1.2,
+  pickup:   () => 0,
+};
+function shippingCost(type, order) {
+  const strategy = shippingStrategies[type];
+  if (!strategy) throw new Error(`Unsupported shipping type: ${type}`);
+  return strategy(order);
+}
+// New type = new entry; shippingCost doesn't change (open/closed)
+
+// 2. Observer
+const { EventEmitter } = require('node:events');
+const orderEvents = new EventEmitter();
+orderEvents.on('order:placed', (order) => inventory.decrement(order.items));
+orderEvents.on('order:placed', (order) => mailer.send(order.email, 'Thanks for your order'));
+orderEvents.on('order:placed', (order) => analytics.track('purchase', { total: order.total }));
+orderEvents.on('error', (err) => logger.error({ err }));
+
+async function placeOrder(order) {
+  const saved = await ordersRepo.save(order);
+  orderEvents.emit('order:placed', saved); // the order service doesn't know who listens
+  return saved;
+}
+
+// 3. Chain of Responsibility
+class Approver {
+  constructor(name, limit) { this.name = name; this.limit = limit; this.next = null; }
+  setNext(approver) { this.next = approver; return approver; }
+  approve(request) {
+    if (request.amount < this.limit) return `${this.name} approved $${request.amount}`;
+    if (this.next) return this.next.approve(request);
+    throw new Error('No approver available');
+  }
+}
+const manager = new Approver('Manager', 1_000);
+manager.setNext(new Approver('Director', 10_000)).setNext(new Approver('CEO', Infinity));
+manager.approve({ amount: 500 });    // Manager approved $500
+manager.approve({ amount: 5_000 });  // Director approved $5000
+manager.approve({ amount: 50_000 }); // CEO approved $50000
+
+// 4. Mediator
+class ChatRoom {
+  #users = new Map();
+  join(user) { this.#users.set(user.name, user); user.room = this; }
+  send(message, from, toName) {
+    if (toName) return this.#users.get(toName)?.receive(message, from.name);
+    for (const [name, user] of this.#users) {
+      if (name !== from.name) user.receive(message, from.name);
+    }
+  }
+}
+class User {
+  constructor(name) { this.name = name; this.room = null; }
+  send(message, to) { this.room.send(message, this, to); }
+  receive(message, fromName) { console.log(`[${this.name}] ${fromName}: ${message}`); }
+}
+const room = new ChatRoom();
+const ana = new User('Ana'); const luis = new User('Luis');
+room.join(ana); room.join(luis);
+ana.send('Hi all');          // Luis receives it
+ana.send('Hi Luis', 'Luis'); // direct message through the mediator
+```
+
+**Evaluation Criteria:**
+- Clear intent of each pattern and their Node equivalents (EventEmitter, middleware, Passport strategies)
+- Distinguishes observer from mediator
+- Idiomatic JS implementations (object maps and functions, not Java-style boilerplate)
+- Can say when a pattern is overkill
+
+---
+
+### Question 87: Reactive Programming with RxJS
+**Question:** What is reactive programming? Explain Observables, Observers, Subscriptions and Subjects, and how they compare to Promises and EventEmitter. What are hot vs cold observables? Explain the common operators (map, filter, debounceTime, switchMap, mergeMap, concatMap, retry). Where does React fit in the reactive model?
+
+**Expected Answer:**
+- **Reactive programming:** programming with asynchronous data streams; you declare how values flow and transform, and changes propagate automatically
+- **Observable:** a lazy producer of 0..N values over time, then `complete` or `error`. **Observer:** `{ next, error, complete }`. **Subscription:** the result of `subscribe()`; `unsubscribe()` stops it and runs teardown (cancellation)
+- **vs Promise:** a promise is eager, resolves once, and can't be cancelled; an observable is lazy, emits many values, and can be cancelled. **vs EventEmitter:** observables have composable operators, completion/error semantics and built-in teardown
+- **Cold:** each subscriber gets its own execution from the start (an HTTP call per subscriber). **Hot:** shared source already producing, subscribers join mid-stream (mouse events, WebSocket). `share()`/`shareReplay()` make a cold observable hot
+- **Subjects:** both observable and observer; multicast. `Subject` (no initial value), `BehaviorSubject` (current value, new subscribers get it immediately: state), `ReplaySubject` (replays the last N), `AsyncSubject`
+- **Operators** (pure functions used in `pipe`): `map`, `filter`, `tap` (side effects), `debounceTime`, `throttleTime`, `distinctUntilChanged`, `scan` (running state), `catchError`, `retry({ count, delay })`, `takeUntil`, `combineLatest`, `merge`
+- **Flattening:** `switchMap` cancels the previous inner observable (search-as-you-type); `mergeMap` runs all concurrently (parallel saves, with a concurrency limit); `concatMap` queues them in order (sequential writes); `exhaustMap` ignores new ones while busy (login button)
+- **Where it's used:** Angular (HttpClient, forms), NestJS microservices/interceptors, complex event handling, WebSockets
+- **React:** not RxJS-based, but its model is reactive: UI = f(state) and it re-renders when state changes. State libraries (MobX, signals, Redux + redux-observable) bring explicit reactivity. Always unsubscribe in `useEffect` cleanup
+
+**Code Challenge:**
+```javascript
+// 1. Create an observable from an EventEmitter and from a Promise
+// 2. Search-as-you-type: debounce input 300ms, ignore duplicates, cancel the previous request (switchMap)
+// 3. Poll an endpoint every 5s, retry failed calls with backoff, stop after 10 tries
+// 4. Explain the difference between switchMap, mergeMap and concatMap with an example
+```
+
+**Expected Solution:**
+```javascript
+const { fromEvent, from, interval, timer } = require('rxjs');
+const {
+  map, filter, debounceTime, distinctUntilChanged, switchMap, retry, take, catchError,
+} = require('rxjs/operators');
+const { EMPTY } = require('rxjs');
+
+// 1.
+const { EventEmitter } = require('node:events');
+const emitter = new EventEmitter();
+const orders$ = fromEvent(emitter, 'order');      // hot: shares the emitter's events
+const user$ = from(fetchUser(1));                 // from a promise (already started: eager)
+// lazy alternative: defer(() => fetchUser(1))
+
+orders$.pipe(filter((o) => o.total > 100)).subscribe((o) => console.log('big order', o.id));
+
+// 2. (browser)
+// const input = document.querySelector('#search');
+const results$ = fromEvent(input, 'input').pipe(
+  map((e) => e.target.value.trim()),
+  filter((q) => q.length >= 2),
+  debounceTime(300),
+  distinctUntilChanged(),
+  switchMap((q) =>
+    from(fetch(`/api/search?q=${encodeURIComponent(q)}`).then((r) => r.json())).pipe(
+      catchError(() => EMPTY), // one failed search doesn't kill the stream
+    )),
+);
+const sub = results$.subscribe(renderResults);
+// later: sub.unsubscribe();
+
+// 3.
+const status$ = interval(5000).pipe(
+  take(10),
+  switchMap(() =>
+    from(fetch('/api/job/42').then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })).pipe(
+      retry({ count: 3, delay: (_err, attempt) => timer(2 ** attempt * 500) }), // 1s, 2s, 4s
+    )),
+);
+status$.subscribe({
+  next: (s) => console.log('status', s),
+  error: (e) => console.error('gave up', e),
+  complete: () => console.log('done polling'),
+});
+
+// 4. User clicks "save" 3 times quickly; each click triggers an HTTP request:
+// switchMap → cancels earlier requests, only the last result is kept (good for search, bad for saves)
+// mergeMap  → all 3 run in parallel, results arrive in any order
+// concatMap → runs them one after another, in order (good for ordered writes)
+```
+
+**Evaluation Criteria:**
+- Explains observables as lazy, multi-value, cancellable streams vs Promise/EventEmitter
+- Knows hot vs cold and Subject variants (BehaviorSubject for state)
+- Picks the right flattening operator and explains why
+- Handles errors inside the inner observable and unsubscribes
+- Can relate the reactive model to React
+
+---
+
+### Question 88: MVC, Layered & Flux Architectures
+**Question:** Explain MVC and how it maps to a Node.js API (routes/controllers, services, repositories/models). What is layered/clean architecture? What is Flux, why did it appear (unidirectional data flow), and how does it relate to Redux?
+
+**Expected Answer:**
+- **MVC:** Model (data + business rules), View (presentation), Controller (handles input, calls the model, picks the view). Classic server-rendered frameworks (Rails, Sails, Express + templates)
+- **In a JSON API** the "view" is the serialized response. Common Node layering:
+    - **Routes/controllers:** HTTP only: parse/validate input, call a service, map the result/errors to status codes
+    - **Services (use cases):** business logic and orchestration, transactions; no `req`/`res`
+    - **Repositories/data access:** queries/ORM; return domain objects
+    - Models/entities, DTOs, validation schemas
+- **Why:** separation of concerns, testability (test services without HTTP), swap the DB or transport (REST → queue consumer) without rewriting logic. Fat controllers are the usual smell
+- **Clean/Hexagonal (ports & adapters):** dependencies point inward: the domain doesn't depend on frameworks or the DB; outer layers (web, DB, messaging) are adapters implementing interfaces (ports) the core defines. More decoupling, more boilerplate; worth it for complex domains
+- **Folder structure:** by feature/module (`users/`, `orders/` each with controller/service/repo) scales better than by layer (`controllers/`, `services/`)
+- **Flux** (Facebook, 2014): MVC with two-way bindings in big UIs led to cascading updates that were hard to follow. Flux enforces **unidirectional data flow**: Action → Dispatcher → Store(s) → View → (user) new Action. State changes only through actions
+- **Redux:** a simplified Flux: a single store, pure reducers `(state, action) => newState`, no dispatcher (the store dispatches), immutable updates, middleware for side effects (thunk/saga). Redux Toolkit is the modern way; for server data, React Query often replaces it
+- Backend parallels: event sourcing and CQRS use the same idea (state = fold of events/actions)
+
+**Code Challenge:**
+```javascript
+// 1. Refactor a route handler that validates, queries the DB and formats the response into controller → service → repository
+// 2. Show the folder structure for the refactored feature
+// 3. Implement a minimal Flux store: dispatch(action) → reducer → subscribers notified
+```
+
+**Expected Solution:**
+```javascript
+// 1. Before: everything in the route
+app.post('/orders', async (req, res) => {
+  if (!req.body.items?.length) return res.status(400).json({ error: 'items required' });
+  const { rows } = await pool.query('INSERT INTO orders (user_id, total) VALUES ($1, $2) RETURNING *',
+    [req.user.id, req.body.items.reduce((s, i) => s + i.price * i.qty, 0)]);
+  res.status(201).json({ id: rows[0].id, total: Number(rows[0].total) });
+});
+
+// After
+// orders/orders.repository.js
+class OrdersRepository {
+  constructor(pool) { this.pool = pool; }
+  async create({ userId, total }) {
+    const { rows } = await this.pool.query(
+      'INSERT INTO orders (user_id, total) VALUES ($1, $2) RETURNING id, total', [userId, total]);
+    return { id: rows[0].id, total: Number(rows[0].total) };
+  }
+}
+
+// orders/orders.service.js
+class ValidationError extends Error {}
+class OrdersService {
+  constructor({ ordersRepository }) { this.repo = ordersRepository; }
+  async placeOrder(userId, items) {
+    if (!items?.length) throw new ValidationError('items required');
+    const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+    return this.repo.create({ userId, total });
+  }
+}
+
+// orders/orders.controller.js
+const makeOrdersController = (ordersService) => ({
+  async create(req, res, next) {
+    try {
+      const order = await ordersService.placeOrder(req.user.id, req.body.items);
+      res.status(201).json(order);
+    } catch (err) { next(err); } // error middleware maps ValidationError → 400
+  },
+});
+
+// orders/orders.routes.js
+// router.post('/orders', authenticate, controller.create);
+
+// 2.
+/*
+src/
+  orders/
+    orders.routes.js
+    orders.controller.js
+    orders.service.js
+    orders.repository.js
+    orders.schema.js        (validation)
+    orders.service.test.js
+  users/
+    ...
+  shared/
+    errors.js
+    db.js
+  app.js                    (composition root: wires repo → service → controller → routes)
+*/
+
+// 3. Minimal Flux/Redux-style store
+function createStore(reducer, initialState) {
+  let state = initialState;
+  const listeners = new Set();
+  return {
+    getState: () => state,
+    dispatch(action) {
+      state = reducer(state, action);   // the only way to change state
+      listeners.forEach((l) => l(state));
+      return action;
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+const cartReducer = (state, action) => {
+  switch (action.type) {
+    case 'cart/add':    return { ...state, items: [...state.items, action.item] };
+    case 'cart/remove': return { ...state, items: state.items.filter((i) => i.id !== action.id) };
+    default:            return state;
+  }
+};
+const store = createStore(cartReducer, { items: [] });
+const unsubscribe = store.subscribe((s) => console.log('items:', s.items.length));
+store.dispatch({ type: 'cart/add', item: { id: 1, price: 10 } }); // items: 1
+```
+
+**Evaluation Criteria:**
+- Explains MVC and maps it correctly to a JSON API's layers
+- Keeps HTTP concerns out of services and SQL out of controllers
+- Knows clean/hexagonal architecture and its trade-off
+- Explains why Flux exists (unidirectional flow) and how Redux simplifies it
+- Working layered refactor and minimal store
+
+---
+
+### Question 89: Microservices, SOA & Messaging
+**Question:** Compare a monolith, a modular monolith, SOA and microservices. What problems do microservices introduce (data consistency, distributed transactions, observability)? Explain synchronous (REST/gRPC) vs asynchronous (queues, pub/sub) communication, the Saga and Outbox patterns, and idempotent consumers. When would you use RabbitMQ, Kafka, SQS/SNS or Redis Streams?
+
+**Expected Answer:**
+- **Monolith:** one deployable. Simple to develop, test, deploy and keep consistent (one DB transaction); scales as a unit; can become a big ball of mud
+- **Modular monolith:** one deployable with strict internal module boundaries. Often the best starting point; modules can be extracted later
+- **SOA:** enterprise services, often coarse-grained, sharing infrastructure and talking through an ESB (enterprise service bus) with heavyweight contracts (SOAP)
+- **Microservices:** small services around business capabilities, each with its **own database**, deployed independently, "smart endpoints, dumb pipes". Benefits: independent deploys/scaling, team autonomy, fault isolation. Costs: distributed systems problems, operational overhead, network latency/failures, data consistency, harder testing and debugging. Need DevOps maturity (CI/CD, containers, observability)
+- **Sync (REST/gRPC):** simple request/response, but temporal coupling: if B is down, A fails; latency adds up. Mitigate with timeouts, retries with backoff, circuit breakers, bulkheads
+- **Async (messaging):** queues (point-to-point, one consumer processes each message: work distribution) and pub/sub (events fan out to many subscribers). Decoupled and resilient, but eventual consistency and harder flow tracing
+- **No distributed transactions** (2PC doesn't scale) → **Saga:** a sequence of local transactions, each with a compensating action. **Choreography** (services react to events; no central brain; harder to follow) vs **orchestration** (a coordinator tells each step; easier to reason about)
+- **Outbox pattern:** "save to DB, then publish" can lose the event if the process crashes in between (or publish an event for a rolled-back write). Instead write the event to an `outbox` table **in the same transaction**, and a relay (poller or CDC/Debezium) publishes it → at-least-once delivery
+- **At-least-once** means duplicates → **idempotent consumers:** store processed message ids (unique constraint), or make the operation naturally idempotent (upsert, conditional update)
+- **Brokers:**
+    - **RabbitMQ:** classic broker, flexible routing (exchanges), acks, per-message work queues, RPC
+    - **Kafka:** distributed append-only log, very high throughput, retention + replay, ordering per partition, consumer groups; event streaming, event sourcing, CDC
+    - **SQS/SNS:** managed AWS; SQS queue (standard or FIFO, DLQs, visibility timeout) + SNS fan-out (SNS → many SQS); EventBridge for routing by rules
+    - **Redis Streams/BullMQ:** lightweight, low latency, good for background jobs when Redis is already there; less durable than Kafka
+- **Observability:** distributed tracing (OpenTelemetry, trace id propagated through HTTP headers and message metadata), centralized logs, per-service metrics; API gateway, service discovery, contract testing (Pact)
+
+**Code Challenge:**
+```javascript
+// 1. Split an e-commerce monolith into services and draw which talk sync vs async
+// 2. Publish an 'order.created' event and consume it in an inventory service (any broker)
+// 3. Make the consumer idempotent so a redelivered message isn't processed twice
+// 4. Implement an orchestrated saga for order → payment → inventory with compensation on failure
+// 5. Explain the outbox pattern and why "write to DB, then publish" is unsafe
+```
+
+**Expected Solution:**
+```javascript
+// 1.
+/*
+  Client → API Gateway
+     ├─(sync REST)→ Catalog service      (own DB: products)
+     ├─(sync REST)→ Orders service       (own DB: orders, outbox)
+     │                  └─(async: order.created)→ broker
+     │                        ├→ Inventory service  (reserves stock)
+     │                        ├→ Payments service   (charges card)
+     │                        └→ Notifications      (emails)
+     └─(sync REST)→ Users/Auth service
+  Rule: sync for queries the user is waiting on; async for side effects and cross-service workflows.
+*/
+
+// 2. RabbitMQ (amqplib)
+const amqp = require('amqplib');
+
+async function publisher() {
+  const conn = await amqp.connect(process.env.AMQP_URL);
+  const ch = await conn.createConfirmChannel();
+  await ch.assertExchange('orders', 'topic', { durable: true });
+  return (event) => new Promise((resolve, reject) => {
+    ch.publish('orders', 'order.created', Buffer.from(JSON.stringify(event)),
+      { persistent: true, messageId: event.eventId, contentType: 'application/json' },
+      (err) => (err ? reject(err) : resolve()));
+  });
+}
+
+// 3. Idempotent consumer in the inventory service
+async function startInventoryConsumer(pool) {
+  const conn = await amqp.connect(process.env.AMQP_URL);
+  const ch = await conn.createChannel();
+  await ch.assertExchange('orders', 'topic', { durable: true });
+  const { queue } = await ch.assertQueue('inventory.order-created', {
+    durable: true, deadLetterExchange: 'orders.dlx',
+  });
+  await ch.bindQueue(queue, 'orders', 'order.created');
+  await ch.prefetch(10);
+
+  ch.consume(queue, async (msg) => {
+    const event = JSON.parse(msg.content.toString());
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // unique constraint on processed_messages.message_id → duplicates are skipped
+      const { rowCount } = await client.query(
+        'INSERT INTO processed_messages (message_id) VALUES ($1) ON CONFLICT DO NOTHING',
+        [event.eventId]);
+      if (rowCount === 1) {
+        for (const item of event.items) {
+          await client.query(
+            'UPDATE stock SET reserved = reserved + $1 WHERE product_id = $2',
+            [item.qty, item.productId]);
+        }
+      }
+      await client.query('COMMIT');
+      ch.ack(msg);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      ch.nack(msg, false, false); // → dead-letter queue after failure
+    } finally {
+      client.release();
+    }
+  });
+}
+
+// 4. Orchestrated saga
+async function placeOrderSaga({ orderId, userId, items, total }, deps) {
+  const { orders, payments, inventory } = deps;
+  const compensations = [];
+  try {
+    await orders.create({ orderId, userId, items, status: 'PENDING' });
+    compensations.push(() => orders.updateStatus(orderId, 'CANCELLED'));
+
+    const payment = await payments.charge({ orderId, userId, amount: total, idempotencyKey: `pay-${orderId}` });
+    compensations.push(() => payments.refund({ paymentId: payment.id, idempotencyKey: `refund-${orderId}` }));
+
+    await inventory.reserve({ orderId, items });
+    compensations.push(() => inventory.release({ orderId }));
+
+    await orders.updateStatus(orderId, 'CONFIRMED');
+    return { orderId, status: 'CONFIRMED' };
+  } catch (err) {
+    for (const undo of compensations.reverse()) {
+      try { await undo(); } catch (e) { logger.error({ e, orderId }, 'compensation failed, needs retry/manual fix'); }
+    }
+    throw err;
+  }
+}
+// Production: persist saga state (or use Temporal/Step Functions) so it survives a crash mid-way.
+
+// 5. Outbox
+// Unsafe: await db.insert(order); await broker.publish(event);
+//   crash between the two → order saved, event lost (other services never know);
+//   or publish succeeds but the transaction rolls back → event for an order that doesn't exist.
+// Outbox: one transaction writes both
+//   BEGIN;
+//   INSERT INTO orders ...;
+//   INSERT INTO outbox (id, topic, payload) VALUES ($1, 'order.created', $2);
+//   COMMIT;
+// A relay polls the outbox (SELECT ... FOR UPDATE SKIP LOCKED), publishes, and marks rows as sent
+// (or Debezium streams the outbox table via CDC). Delivery is at-least-once → consumers must be idempotent.
+```
+
+**Evaluation Criteria:**
+- Balanced monolith vs microservices view; knows the modular monolith and SOA/ESB
+- Knows sync vs async trade-offs and resilience patterns (timeouts, retries, circuit breakers)
+- Explains Saga (orchestration vs choreography) with compensations
+- Explains Outbox and why dual writes are unsafe
+- Idempotent consumers with dedup; DLQs
+- Picks the right broker for the use case
+
+---
+
+*End of Section 8: Added — 2026-10-28*

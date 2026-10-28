@@ -5,7 +5,7 @@
 ## 1.1 ES6+ Features
 
 ### Question 1: Variable Declarations
-**Question:** Explain the differences between `var`, `let`, and `const`. What is hoisting, and how does it affect each declaration type?
+**Question:** Explain the differences between `var`, `let`, and `const`. What is hoisting, and how does it affect each declaration type? How are function declarations hoisted compared to function expressions and arrow functions?
 **Code Challenge:**
 ```javascript
 // Predict the output and explain why:
@@ -21,6 +21,12 @@ for (var i = 0; i < 3; i++) {
 for (let j = 0; j < 3; j++) {
   setTimeout(() => console.log(j), 100);
 }
+
+// Also predict:
+sayHi();  // ?
+sayBye(); // ?
+function sayHi() { console.log('hi'); }
+var sayBye = function () { console.log('bye'); };
 ```
 
 
@@ -155,7 +161,7 @@ const user = {
 ## 1.4 Classes & Prototypes
 
 ### Question 9: Classes & Inheritance
-**Question:** Explain JavaScript classes, inheritance, and how they relate to prototypes. What's the difference between class syntax and prototypal inheritance?
+**Question:** Explain JavaScript classes, inheritance, and how they relate to prototypes. What's the difference between class syntax and prototypal inheritance? What are the four pillars of OOP (encapsulation, abstraction, inheritance, polymorphism) and how does each look in JavaScript?
 **Code Challenge:**
 ```javascript
 // Create a class hierarchy for a payment system:
@@ -164,6 +170,7 @@ const user = {
 // 3. PayPalPayment extends Payment: email, validate()
 // 4. Use private fields where appropriate
 // 5. Add a static method to track total processed payments
+// 6. Point out where your solution shows each of the four OOP pillars
 ```
 
 
@@ -643,7 +650,7 @@ console.log('6');
 ## 3.8 Package Management & Versioning
 
 ### Question 36: NPM & Semantic Versioning
-**Question:** Explain semantic versioning (semver) in Node.js. How do `package.json` and `package-lock.json` work? What's the difference between `dependencies` and `devDependencies`?
+**Question:** Explain semantic versioning (semver) in Node.js. How do `package.json` and `package-lock.json` work? What's the difference between `dependencies`, `devDependencies`, `peerDependencies` and `optionalDependencies`?
 **Code Challenge:**
 ```javascript
 // Explain these package.json entries and when to use each:
@@ -661,6 +668,7 @@ console.log('6');
 }
 
 // Also: Create a publishable NPM package with proper structure
+// Also: you publish a React component library. Where does `react` go in its package.json, and why?
 ```
 
 
@@ -921,7 +929,7 @@ console.log('6');
 ## 7.2 Redis
 
 ### Question 56: Redis Data Structures & Caching Patterns
-**Question:** What is Redis and why is it fast? Explain its core data structures and when to use each. Compare cache-aside, write-through, and write-behind. How do you handle cache invalidation, stampedes, and eviction?
+**Question:** What is Redis and why is it fast? Explain its core data structures and when to use each. Compare cache-aside, write-through, and write-behind. How do you handle cache invalidation, stampedes, and eviction? Why is Redis a common session store, and how do you implement one?
 **Code Challenge:**
 ```javascript
 // Using ioredis or node-redis:
@@ -929,4 +937,408 @@ console.log('6');
 // 2. Prevent a cache stampede when a hot key expires
 // 3. Fixed-window rate limiter: max 100 requests per user per minute (INCR + EXPIRE)
 // 4. Leaderboard: add scores and fetch the top 10 (sorted set)
+// 5. Session store: create, read (with sliding expiration) and destroy a session
+```
+
+# SECTION 8: Added — 2026-10-28
+
+## 8.1 JavaScript
+
+### Question 57: Counting Vowels & Consonants
+**Question:** Write a function that takes a string as its only argument and returns an object with the number of vowels and consonants. How do you handle case, accents, spaces, digits and punctuation? What's the complexity?
+**Code Challenge:**
+```javascript
+// 1. count('gato') → { vowels: 2, consonants: 2 }
+// 2. Make it case-insensitive and ignore spaces, digits and punctuation: count('Hola, Mundo 2024!')
+// 3. Treat accented vowels as vowels: count('canción') → { vowels: 3, consonants: 4 }
+// 4. Write a second version with reduce (or regex) and compare readability and complexity
+```
+
+### Question 58: Data Types, null vs undefined & Symbol
+**Question:** What data types exist in JavaScript? Which are primitives and which are structural? What's the difference between `null` and `undefined`? What is `Symbol` used for?
+**Code Challenge:**
+```javascript
+// 1. Predict the output:
+typeof null;            // ?
+typeof undefined;       // ?
+typeof NaN;             // ?
+typeof [];              // ?
+typeof function () {};  // ?
+typeof Symbol('id');    // ?
+typeof 10n;             // ?
+null == undefined;      // ?
+null === undefined;     // ?
+
+// 2. Write getType(value) that returns 'null', 'array', 'date', 'object', 'string', etc.
+// 3. Use a Symbol to add a hidden metadata key to an object that doesn't show up in JSON.stringify or Object.keys
+// 4. Make a class iterable with Symbol.iterator
+```
+
+### Question 59: Primitives vs References: Memory & Mutability
+**Question:** How is memory managed for primitive values compared to objects/arrays (stack vs heap, copy by value vs by reference)? What is mutability, and why does it matter? Is JavaScript pass-by-value or pass-by-reference? How does garbage collection work?
+**Code Challenge:**
+```javascript
+// 1. Predict the output and explain:
+let a = 10;
+let b = a;
+b++;
+console.log(a, b); // ?
+
+const user1 = { name: 'Ana', tags: ['admin'] };
+const user2 = user1;
+const user3 = { ...user1 };
+user2.name = 'Luis';
+user3.tags.push('editor');
+console.log(user1); // ?
+
+function reassign(obj) { obj = { name: 'new' }; }
+function mutate(obj) { obj.name = 'mutated'; }
+reassign(user1); mutate(user1);
+console.log(user1.name); // ?
+
+// 2. Write an updateUser(user, changes) that returns a new object without mutating the input (nested address included)
+// 3. Show a memory leak caused by a reference that is never released, and fix it
+```
+
+### Question 60: Function Types, IIFE & call/apply/bind
+**Question:** What kinds of functions exist in JavaScript (declarations, expressions, arrow, methods, constructors, async, generators)? What is an IIFE and why was it used? What do `call`, `apply` and `bind` do, and when would you use each?
+**Code Challenge:**
+```javascript
+// 1. Write a counter module with an IIFE that exposes increment() and getCount() but hides the count
+// 2. Borrow Array.prototype methods with call/apply on an array-like object ({ 0: 'a', 1: 'b', length: 2 })
+// 3. Find the max of an array using Math.max with apply, then with spread
+// 4. Fix the lost `this` in: setTimeout(user.greet, 100) using bind
+// 5. Implement your own Function.prototype.myBind (with partial application)
+```
+
+### Question 61: Generators & Iterators
+**Question:** What is a generator function? How does `yield` work, and how do generators relate to the iteration protocol? When would you use a generator in a real backend? What are async generators?
+**Code Challenge:**
+```javascript
+// 1. Write an idGenerator() that yields 1, 2, 3, ... forever, and take the first 5 values
+// 2. Write a range(start, end, step) generator usable in for...of
+// 3. Write a lazy pipeline: take(filter(map(naturals(), x => x * 2), x => x % 3 === 0), 5)
+// 4. Write an async generator that pages through an API (page 1, 2, ... until empty) and consume it with for await...of
+```
+
+## 8.2 Node.js
+
+### Question 62: NPM Scripts, npx & Node Version Managers
+**Question:** How do npm scripts work? When do you need `npm run` and when not (`npm start`, `npm test`)? What are `pre`/`post` scripts and lifecycle hooks? What is `npx` for? How do you force a transitive dependency version (`overrides`/`resolutions`)? What are nvm and `n`, and how do they differ?
+**Code Challenge:**
+```javascript
+// Write the package.json "scripts" (and other fields) for:
+// 1. start, dev (nodemon), test, lint and build scripts
+// 2. A "prebuild" that cleans dist/ and a "postbuild" that copies assets
+// 3. Passing extra arguments to a script (run jest in watch mode from the test script)
+// 4. Force every copy of "minimist" in the dependency tree to 1.2.8
+// 5. Pin the Node version for the project (.nvmrc + "engines")
+// Also: run a CLI tool once without installing it globally
+```
+
+### Question 63: EventEmitter
+**Question:** What is the `EventEmitter` in Node.js? How do `on`, `once`, `emit`, `off` and `prependListener` work? Are listeners called synchronously or asynchronously? How are errors handled, and what is the max listeners warning?
+**Code Challenge:**
+```javascript
+// 1. Create an OrderService class that extends EventEmitter and emits 'created' and 'paid' events
+// 2. Register a one-time listener and a regular listener; show the order they run in
+// 3. Handle the 'error' event correctly (what happens if nobody listens?)
+// 4. Wait for an event with a timeout using events.once() and AbortSignal
+// 5. Implement a minimal EventEmitter yourself (on, once, off, emit)
+```
+
+### Question 64: Core Modules & CommonJS vs ESM
+**Question:** What are Node.js core modules, and which ones do you use most (fs, path, http, events, stream, crypto, os, util, url, child_process, worker_threads)? What are the differences between CommonJS and ECMAScript Modules (loading, syntax, `this`, `__dirname`, top-level await, interop)?
+**Code Challenge:**
+```javascript
+// 1. Using only core modules, build an HTTP server that serves a JSON file from disk
+// 2. Hash a password with crypto.scrypt and compare it with timingSafeEqual
+// 3. Convert this CommonJS module to ESM (including __dirname):
+const path = require('path');
+const config = require('./config.json');
+module.exports = { configPath: path.join(__dirname, 'config.json'), config };
+// 4. Import a CommonJS package from ESM and an ESM-only package from CommonJS
+```
+
+### Question 65: Child Processes, Cluster & Worker Threads
+**Question:** Explain `spawn`, `exec`, `execFile` and `fork`. How does IPC work between parent and child? How do `cluster` and `worker_threads` differ, and when would you use each? What are C++ addons (N-API) for?
+**Code Challenge:**
+```javascript
+// 1. Run `ls -la` with spawn and stream its output
+// 2. Run a git command with execFile and explain why exec is dangerous with user input
+// 3. fork a child process and exchange messages with it (IPC)
+// 4. Move a CPU-heavy calculation (e.g. fib(40)) to a worker thread so the HTTP server stays responsive
+// 5. Use cluster to run one HTTP server per CPU core and restart workers that crash
+```
+
+### Question 66: Debugging & Logging in Node.js
+**Question:** How do you debug a Node.js application (`node --inspect`, `--inspect-brk`, Chrome DevTools, VS Code, ndb)? How do you debug a production issue? Which logging libraries do you use (winston, pino), and what makes good logging (levels, structured logs, correlation ids, redaction)?
+**Code Challenge:**
+```javascript
+// 1. Show how to start the app with the inspector and stop on the first line
+// 2. Create a pino (or winston) logger with levels set by env, JSON output in prod and pretty output in dev
+// 3. Add a request-logging middleware that attaches a request id to every log line (AsyncLocalStorage)
+// 4. Redact passwords and tokens from logs
+```
+
+### Question 67: HTTP Messages, Methods & Status Codes
+**Question:** What are the parts of an HTTP request and of an HTTP response, and how do they differ? Explain the HTTP methods and which are safe and idempotent. Explain the status code classes (1xx–5xx) with the codes you use most.
+**Code Challenge:**
+```javascript
+// 1. Write out a raw HTTP request (POST /api/users with JSON body) and its raw response
+// 2. Pick the status code for each case:
+//    a) resource created          b) deleted, no body          c) validation failed
+//    d) missing/invalid token     e) valid token, no permission f) duplicate email
+//    g) rate limited              h) resource moved permanently  i) cached copy still valid
+//    j) upstream service down
+// 3. Which of these is safe to retry automatically: GET, PUT, DELETE, POST, PATCH? Why?
+// 4. With Node's http module, return a 201 with a Location header
+```
+
+### Question 68: Cookies, localStorage & Session vs Token Auth
+**Question:** What is a JWT and what are cookies? How do cookies, localStorage and sessionStorage differ (size, sent with requests, XSS/CSRF exposure, lifetime)? Compare server-side sessions with JWT-based auth. Where should a token be stored in the browser?
+**Code Challenge:**
+```javascript
+// 1. In Express, set an auth cookie with the right flags (HttpOnly, Secure, SameSite, maxAge, path)
+// 2. Decode a JWT by hand (header.payload.signature) and explain why it isn't encrypted
+// 3. Explain how you'd protect a cookie-based session from CSRF
+// 4. Pick a storage option for: access token, refresh token, UI theme preference, shopping cart draft
+```
+
+## 8.3 Databases
+
+### Question 69: Views, Stored Procedures & Triggers
+**Question:** What are views, materialized views, stored procedures, functions and triggers? What are they good for, and what are the downsides of putting business logic in the database?
+**Code Challenge:**
+```sql
+-- 1. Create a view of active users with their order count
+-- 2. Create a materialized view for a monthly sales report and refresh it
+-- 3. Write a stored procedure/function that transfers stock between warehouses in a transaction
+-- 4. Write a trigger that keeps updated_at current and writes changes to an audit table
+-- 5. Call the procedure from Node.js (pg)
+```
+
+### Question 70: ORM vs ODM
+**Question:** What is an ORM and what is an ODM? Give examples (Prisma, TypeORM, Sequelize, Drizzle, Mongoose). What are the pros and cons compared with raw SQL or a query builder? What is the N+1 problem and how do you avoid it?
+**Code Challenge:**
+```javascript
+// 1. Define a User has-many Post model with Sequelize or Prisma
+// 2. Define the same with Mongoose (embedded vs referenced posts)
+// 3. Show an N+1 query and fix it with eager loading / populate
+// 4. Run a raw query from the ORM for a report the ORM can't express well
+// 5. Run two writes in one transaction with the ORM
+```
+
+## 8.4 Docker & Kubernetes
+
+### Question 71: Dockerfile vs Docker Compose
+**Question:** What is the difference between a Dockerfile and Docker Compose? What are images, containers, layers and volumes? What are the best practices for a production Node.js Dockerfile?
+**Code Challenge:**
+```yaml
+# 1. Write a multi-stage Dockerfile for a Node.js API (small image, non-root user, layer caching, .dockerignore)
+# 2. Write a docker-compose.yml with the API, PostgreSQL and Redis:
+#    - env vars, named volume for DB data, healthcheck, depends_on with condition
+# 3. Explain the order of COPY package*.json and COPY . and why it matters
+```
+
+### Question 72: Kubernetes Core Objects
+**Question:** What is Kubernetes and what problem does it solve? Explain Pods, Deployments, ReplicaSets, Services (ClusterIP, NodePort, LoadBalancer), Ingress, ConfigMaps, Secrets, liveness/readiness probes and the Horizontal Pod Autoscaler.
+**Code Challenge:**
+```yaml
+# For the Node.js API from Q71, write:
+# 1. A Deployment with 3 replicas, resource requests/limits, and liveness + readiness probes
+# 2. A ConfigMap and a Secret, injected as environment variables
+# 3. A ClusterIP Service and an Ingress exposing /api
+# 4. An HPA that scales between 3 and 10 pods at 70% CPU
+# 5. The kubectl commands to apply, check rollout status and roll back
+```
+
+## 8.5 CI/CD & Teamwork
+
+### Question 73: Git: Merge vs Rebase
+**Question:** What is the difference between `git merge` and `git rebase`? When do you use each, and what is the golden rule of rebasing? What are fast-forward and squash merges? How does Git (distributed) differ from SVN (centralized)?
+**Code Challenge:**
+```bash
+# 1. Update your feature branch with the latest main, once with merge and once with rebase. Draw the history for each.
+# 2. Clean up 4 messy commits into 1 before opening a PR
+# 3. You rebased a branch that a teammate already pulled. What happens and how do you recover?
+# 4. Resolve a conflict during a rebase and continue
+# 5. Recover a commit you lost after a bad reset
+```
+
+### Question 74: Module Bundlers & Build Tools
+**Question:** What is a module bundler (webpack, Rollup, esbuild, Vite) and what problems does it solve? Explain loaders/plugins, tree shaking, code splitting and source maps. What does Babel do? How do task runners (Grunt, Gulp) and preprocessors fit in, and do you need a bundler for a Node.js backend?
+**Code Challenge:**
+```javascript
+// 1. Write a minimal webpack.config.js: entry, output, a babel-loader rule, a CSS loader rule, production mode
+// 2. Configure Babel to target Node 20 and the last 2 browser versions
+// 3. Explain why this import breaks tree shaking and fix it:
+const _ = require('lodash');
+_.debounce(fn, 300);
+// 4. Bundle a Node.js Lambda handler with esbuild into a single file
+```
+
+## 8.6 JavaScript (syllabus)
+
+### Question 75: Functional Programming in JS
+**Question:** What is functional programming? Explain pure functions, side effects, immutability, first-class and higher-order functions, currying, partial application, composition and recursion. What are the trade-offs of recursion in JavaScript?
+**Code Challenge:**
+```javascript
+// 1. Turn this impure function into a pure one:
+let total = 0;
+function addToTotal(x) { total += x; return total; }
+// 2. Implement curry(fn) so that curry(add3)(1)(2)(3) === curry(add3)(1, 2)(3) === 6
+// 3. Implement compose(...fns) and pipe(...fns)
+// 4. Flatten a deeply nested array recursively, then without recursion
+// 5. Sum 1..100000 recursively. What happens, and how do you avoid it?
+```
+
+## 8.7 Node.js (syllabus)
+
+### Question 76: Process Management & Graceful Shutdown
+**Question:** How do you keep a Node.js process running in production (PM2, Forever, systemd, Docker restart policies, Kubernetes)? What does PM2 cluster mode do? How do you implement graceful shutdown? How should you handle `uncaughtException` and `unhandledRejection`?
+**Code Challenge:**
+```javascript
+// 1. Write an ecosystem.config.js for PM2: cluster mode on all cores, max memory restart, env per environment
+// 2. Implement graceful shutdown on SIGTERM/SIGINT:
+//    stop accepting connections, finish in-flight requests, close DB/Redis, exit with a timeout fallback
+// 3. Add uncaughtException / unhandledRejection handlers. What should they do and not do?
+// 4. Make the readiness check fail during shutdown so the load balancer stops sending traffic
+```
+
+### Question 77: Event Loop Monitoring & Profiling
+**Question:** How do you detect that the event loop is blocked? What is event loop lag/delay and utilization? Which tools do you use (perf_hooks, Clinic.js Doctor/Flame/Bubbleprof, N|Solid, `--prof`, heap snapshots)? How do you find a memory leak?
+**Code Challenge:**
+```javascript
+// 1. Measure event loop delay with perf_hooks.monitorEventLoopDelay and log p50/p99 every 10s
+// 2. Write an endpoint that blocks the loop (sync crypto or a big JSON.parse) and show how you'd find it in a flame graph
+// 3. Return 503 when event loop lag is above a threshold (load shedding)
+// 4. Take two heap snapshots and explain how to compare them to find a leak
+```
+
+### Question 78: Node.js Framework Landscape
+**Question:** Compare Express, Fastify, Koa, Hapi, NestJS, Restify and Sails. Where do Next.js and Nuxt fit, and what about serverless frameworks (Serverless Framework, SST)? How do you choose a framework for a new backend service?
+**Code Challenge:**
+```javascript
+// Implement GET /users/:id with JSON schema validation of the param in:
+// 1. Express
+// 2. Fastify (with a route schema)
+// 3. NestJS (controller + service + DTO with class-validator)
+// Then: explain middleware in Express vs Koa (onion model) vs Fastify hooks
+```
+
+### Question 79: HTTP Optimization, CORS & HTTP/2
+**Question:** How do you optimize HTTP APIs? Explain HTTP caching (Cache-Control, ETag, Last-Modified, 304), compression (gzip, Brotli), and CORS (simple vs preflight requests, credentials). What does HTTP/2 change compared with HTTP/1.1, and what is HTTP/3?
+**Code Challenge:**
+```javascript
+// In Express:
+// 1. Configure CORS for two allowed origins with credentials, without using '*'
+// 2. Serve GET /products with Cache-Control and an ETag, and return 304 when it matches
+// 3. Enable compression only for responses above 1 KB
+// 4. Explain why a browser sends OPTIONS before your PUT request
+```
+
+## 8.8 Databases (syllabus)
+
+### Question 80: ETL & Data Warehousing
+**Question:** What is the difference between OLTP and OLAP? What is a data warehouse, and how does it differ from a data lake? Explain ETL vs ELT, star and snowflake schemas, and fact vs dimension tables.
+**Code Challenge:**
+```javascript
+// 1. Design a star schema for e-commerce sales (fact_sales + dimensions)
+// 2. Write a Node.js ETL job that streams orders from PostgreSQL, transforms them, and loads them in batches into the warehouse
+// 3. Make the job incremental (only rows changed since the last run) and idempotent
+```
+
+## 8.9 Docker & Kubernetes (syllabus)
+
+### Question 81: Deployment Strategies & Load Balancing
+**Question:** What are the options for deploying a Node.js app: a server behind Nginx, containers (Docker/Kubernetes), or serverless (FaaS)? What are the trade-offs? What does a reverse proxy do? Explain load-balancing algorithms, health checks, sticky sessions, and L4 vs L7 load balancers.
+**Code Challenge:**
+```nginx
+# 1. Write an Nginx config that reverse-proxies to 3 Node.js instances (least_conn), sets X-Forwarded-* headers, and serves static files
+# 2. Add TLS termination and gzip
+# 3. Add WebSocket support
+# 4. Explain what changes in the app when it sits behind a proxy (trust proxy, real client IP)
+```
+
+## 8.10 CI/CD & Teamwork (syllabus)
+
+### Question 82: Code Quality Gates & Code Review
+**Question:** How do you enforce code quality in a team? Explain ESLint vs Prettier, pre-commit hooks (husky, lint-staged), coverage configuration and thresholds, and quality gates in CI. What do you look for in a code review, and how do you give good review feedback?
+**Code Challenge:**
+```javascript
+// 1. Write an eslint.config.js (flat config) for a Node.js + TypeScript project with Prettier
+// 2. Set up husky + lint-staged so only staged files are linted and formatted on commit
+// 3. Configure Jest coverage with an 80% threshold that fails CI
+// 4. Review this PR snippet and write 3 review comments:
+app.get('/user', async (req, res) => {
+  const user = await db.query(`SELECT * FROM users WHERE id = ${req.query.id}`);
+  res.send(user);
+});
+```
+
+### Question 83: Agile & Scrum
+**Question:** What are the Agile values? Explain Scrum roles, events (sprint planning, daily, review, retrospective) and artifacts (product backlog, sprint backlog, increment). What is the Definition of Done? How does Kanban differ from Scrum? Which tools have you used (Jira, Linear, etc.)?
+
+## 8.11 Design Patterns & Architecture
+
+### Question 84: Creational Patterns & Dependency Injection
+**Question:** Explain the Factory, Abstract Factory and Singleton patterns. How does Node's module cache act as a singleton, and what are the downsides of singletons? What is dependency injection, and how does it help testing (manual DI vs containers like NestJS, awilix, inversify)?
+**Code Challenge:**
+```javascript
+// 1. Write a NotificationFactory that creates Email, SMS or Push senders from a type string
+// 2. Write an Abstract Factory that creates a matching { queue, storage } pair for 'aws' or 'local'
+// 3. Write a DB connection singleton two ways (module cache and class) and explain the testing problem
+// 4. Refactor a UserService that does `new PostgresRepo()` internally to receive its repo by constructor injection, then test it with a fake
+```
+
+### Question 85: Structural Patterns
+**Question:** Explain the Adapter, Decorator, Facade, Proxy and Module patterns. What is a mixin, and how does it compare to inheritance? Give a real Node.js example of each.
+**Code Challenge:**
+```javascript
+// 1. Adapter: wrap a legacy callback-based payment SDK so it fits a promise-based PaymentGateway interface
+// 2. Decorator: add retry and logging to any async function without changing it (withRetry(withLogging(fn)))
+// 3. Facade: an OrderFacade.placeOrder() that hides inventory, payment and email services
+// 4. Proxy: a cache proxy around a slow repository using JS Proxy
+// 5. Mixin: add Serializable and Timestamped behavior to a class
+```
+
+### Question 86: Behavioral Patterns
+**Question:** Explain the Strategy, Observer, Mediator and Chain of Responsibility patterns. Where do you see them in Node.js (EventEmitter, Express middleware)? When does a pattern become over-engineering?
+**Code Challenge:**
+```javascript
+// 1. Strategy: replace a big switch on shippingType with pluggable pricing strategies
+// 2. Observer: an order system where inventory, email and analytics subscribe to 'order:placed'
+// 3. Chain of Responsibility: an approval chain (manager < $1k, director < $10k, CEO otherwise)
+// 4. Mediator: a chat room that routes messages between users without users knowing each other
+```
+
+### Question 87: Reactive Programming with RxJS
+**Question:** What is reactive programming? Explain Observables, Observers, Subscriptions and Subjects, and how they compare to Promises and EventEmitter. What are hot vs cold observables? Explain the common operators (map, filter, debounceTime, switchMap, mergeMap, concatMap, retry). Where does React fit in the reactive model?
+**Code Challenge:**
+```javascript
+// 1. Create an observable from an EventEmitter and from a Promise
+// 2. Search-as-you-type: debounce input 300ms, ignore duplicates, cancel the previous request (switchMap)
+// 3. Poll an endpoint every 5s, retry failed calls with backoff, stop after 10 tries
+// 4. Explain the difference between switchMap, mergeMap and concatMap with an example
+```
+
+### Question 88: MVC, Layered & Flux Architectures
+**Question:** Explain MVC and how it maps to a Node.js API (routes/controllers, services, repositories/models). What is layered/clean architecture? What is Flux, why did it appear (unidirectional data flow), and how does it relate to Redux?
+**Code Challenge:**
+```javascript
+// 1. Refactor a route handler that validates, queries the DB and formats the response into controller → service → repository
+// 2. Show the folder structure for the refactored feature
+// 3. Implement a minimal Flux store: dispatch(action) → reducer → subscribers notified
+```
+
+### Question 89: Microservices, SOA & Messaging
+**Question:** Compare a monolith, a modular monolith, SOA and microservices. What problems do microservices introduce (data consistency, distributed transactions, observability)? Explain synchronous (REST/gRPC) vs asynchronous (queues, pub/sub) communication, the Saga and Outbox patterns, and idempotent consumers. When would you use RabbitMQ, Kafka, SQS/SNS or Redis Streams?
+**Code Challenge:**
+```javascript
+// 1. Split an e-commerce monolith into services and draw which talk sync vs async
+// 2. Publish an 'order.created' event and consume it in an inventory service (any broker)
+// 3. Make the consumer idempotent so a redelivered message isn't processed twice
+// 4. Implement an orchestrated saga for order → payment → inventory with compensation on failure
+// 5. Explain the outbox pattern and why "write to DB, then publish" is unsafe
 ```

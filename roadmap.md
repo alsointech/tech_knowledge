@@ -8,28 +8,28 @@ Single source of truth for topic order. Both `interview/` and `mentor/` follow i
 
 | # | Topic | Questions | Progress files |
 | --- | --- | --- | --- |
-| 01 | JavaScript | Q1–Q15 | `01-javascript` |
-| 02 | Node.js | Q29–Q37 | `02-nodejs` |
+| 01 | JavaScript | Q1–Q15, Q57–Q61, Q75 | `01-javascript` |
+| 02 | Node.js | Q29–Q37, Q62–Q68, Q76–Q79 | `02-nodejs` |
 | 03 | TypeScript | Q16–Q18 | `03-typescript` |
-| 04 | Databases (PostgreSQL, MySQL, Redis) | Q38–Q41, Q54–Q56 | `04-databases` |
+| 04 | Databases (PostgreSQL, MySQL, Redis) | Q38–Q41, Q54–Q56, Q69, Q70, Q80 | `04-databases` |
 
 ## Phase 2 — months 4-6
 
 | # | Topic | Questions | Progress files |
 | --- | --- | --- | --- |
 | 05 | AI | — | `05-ai` |
-| 06 | Docker + Kubernetes | Q44 | `06-docker-kubernetes` |
-| 07 | CI/CD | Q47 | `07-cicd` |
+| 06 | Docker + Kubernetes | Q44, Q71, Q72, Q81 | `06-docker-kubernetes` |
+| 07 | CI/CD | Q47, Q73, Q74, Q82, Q83 | `07-cicd` |
 | 08 | React | Q19–Q28 | `08-react` |
 | 09 | AWS | Q42, Q43, Q45, Q46, Q48–Q53 | `09-aws` |
+| 10 | Design Patterns & Architecture | Q84–Q89 | `10-design-patterns` |
 
 ## TODO — question bank gaps
 
 - **05 AI:** no questions yet (LLM API integration, prompt design, RAG, vector DBs, streaming).
-- **06 Docker + Kubernetes:** only Q44 (ECS/EKS). Missing: Dockerfile best practices, K8s pods/deployments/services, probes, config/secrets.
-- **07 CI/CD:** only Q47. Missing: pipeline design, environments/promotions, rollback strategy.
+- **07 CI/CD:** still missing a dedicated pipeline design question (environments/promotions, rollback strategy). Q47 covers part of it.
 
-Next free question number: **Q57**. Update this when you add one. How to add or change questions and topics: see "Editing the study plan" in `README.md`.
+Next free question number: **Q90**. Update this when you add one. How to add or change questions and topics: see "Editing the study plan" in `README.md`.
 
 ## Progress files per topic
 
