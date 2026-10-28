@@ -1,2 +1,2 @@
-# JavaScript & TypeScript Fundamentals — Mastery Notes
+# Topic 01: JavaScript — Mastery Notes
 

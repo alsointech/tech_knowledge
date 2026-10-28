@@ -9546,3 +9546,250 @@ Post-Incident:
 
 *End of Section 6: AWS Advanced Strategies & Security*
 
+
+---
+
+# SECTION 7: Databases — PostgreSQL, MySQL & Redis
+
+---
+
+## 7.1 Relational Engines
+
+### Question 54: PostgreSQL vs MySQL
+**Question:** Compare PostgreSQL and MySQL (InnoDB). How do they differ in MVCC, indexing options, JSON support, and replication? When would you pick each for a Node.js backend?
+
+**Expected Answer:**
+- **MVCC:** PostgreSQL keeps old row versions in the table heap (needs `VACUUM`/autovacuum to reclaim dead tuples). InnoDB keeps old versions in undo logs, so there's no vacuum, but long transactions grow the undo history.
+- **Indexes:** PostgreSQL has B-tree, Hash, GIN (JSONB, arrays, full-text), GiST/SP-GiST (geo, ranges), BRIN (huge append-only tables), partial and expression indexes. InnoDB has B-tree clustered on the primary key (secondary indexes store the PK, so keep PKs small), full-text and spatial; functional indexes since 8.0.13.
+- **JSON:** PostgreSQL `JSONB` is binary, indexable with GIN, with rich operators (`->`, `->>`, `@>`). MySQL `JSON` is indexed through generated columns or functional indexes.
+- **Other:** PostgreSQL has `RETURNING`, CTEs including writable ones, window functions, `ON CONFLICT`, extensions (PostGIS, pgvector), and transactional DDL. MySQL has `ON DUPLICATE KEY UPDATE`, `LAST_INSERT_ID()`, and no transactional DDL.
+- **Replication:** both support streaming/binlog async and semi-sync replicas. PostgreSQL also has logical replication; MySQL has Group Replication.
+- **Choice:** PostgreSQL for complex queries, data integrity, JSON + relational, geo/vector. MySQL for simple read-heavy OLTP, existing ecosystem (WordPress, Vitess-scale sharding), or team familiarity. Both are fine for most CRUD services.
+
+**Expected Solution:**
+```javascript
+// 1. Upsert
+// PostgreSQL
+const pgUpsert = `
+  INSERT INTO users (email, name) VALUES ($1, $2)
+  ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+  RETURNING id`;
+// MySQL
+const myUpsert = `
+  INSERT INTO users (email, name) VALUES (?, ?)
+  ON DUPLICATE KEY UPDATE name = VALUES(name)`; // 8.0.20+: use row alias instead of VALUES()
+
+// 2. JSON query + index
+// PostgreSQL (JSONB)
+//   CREATE INDEX idx_users_prefs ON users USING GIN (preferences);
+//   SELECT * FROM users WHERE preferences @> '{"theme":"dark"}';
+//   -- or expression index: CREATE INDEX ON users ((preferences->>'theme'));
+// MySQL (JSON)
+//   ALTER TABLE users ADD COLUMN theme VARCHAR(20)
+//     GENERATED ALWAYS AS (preferences->>'$.theme') STORED, ADD INDEX idx_theme (theme);
+//   SELECT * FROM users WHERE theme = 'dark';
+
+// 3. Inserted id from Node.js
+const { Pool } = require('pg');
+const pg = new Pool();
+async function createUserPg(email, name) {
+  const { rows } = await pg.query(pgUpsert, [email, name]);
+  return rows[0].id;
+}
+
+const mysql = require('mysql2/promise');
+const my = mysql.createPool({ uri: process.env.MYSQL_URL });
+async function createUserMysql(email, name) {
+  const [result] = await my.execute(myUpsert, [email, name]);
+  return result.insertId; // LAST_INSERT_ID()
+}
+```
+
+**Evaluation Criteria:**
+- Knows MVCC differs (vacuum vs undo log) and why it matters operationally
+- Clustered PK in InnoDB and its effect on secondary indexes
+- JSONB + GIN vs generated-column indexing
+- Picks an engine from requirements, not preference
+
+---
+
+### Question 55: Transactions, Isolation Levels & Locking
+**Question:** Explain transaction isolation levels (Read Uncommitted, Read Committed, Repeatable Read, Serializable) and the anomalies each prevents. What are the defaults in PostgreSQL and MySQL? Pessimistic vs optimistic locking?
+
+**Expected Answer:**
+- **Anomalies:** dirty read, non-repeatable read, phantom read, lost update, write skew.
+- **Levels:**
+  - Read Uncommitted: allows dirty reads (PostgreSQL treats it as Read Committed).
+  - Read Committed: each statement sees committed data. **PostgreSQL default.**
+  - Repeatable Read: a snapshot for the whole transaction. **MySQL InnoDB default** (gap/next-key locks reduce phantoms). In PostgreSQL it's snapshot isolation; concurrent updates fail with a serialization error.
+  - Serializable: as if run one at a time. PostgreSQL uses SSI and aborts conflicting transactions, so **the app must retry** (SQLSTATE `40001`).
+- **Pessimistic locking:** `SELECT ... FOR UPDATE` locks rows until commit. Good under high contention.
+- **Optimistic locking:** a `version` column; `UPDATE ... WHERE id=? AND version=?` and retry if 0 rows changed. Good under low contention.
+- **Deadlocks:** lock rows in a consistent order (e.g. by id), keep transactions short, retry on deadlock (`40P01` / MySQL `1213`).
+- **Node.js gotcha:** a transaction must run on **one client checked out from the pool**, not `pool.query()` (each call may use a different connection).
+
+**Expected Solution:**
+```javascript
+const { Pool } = require('pg');
+const pool = new Pool();
+
+// Pessimistic: lock both rows in id order to avoid deadlocks
+async function transfer(fromId, toId, amount) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const [firstId, secondId] = fromId < toId ? [fromId, toId] : [toId, fromId];
+    const { rows } = await client.query(
+      'SELECT id, balance FROM accounts WHERE id IN ($1, $2) ORDER BY id FOR UPDATE',
+      [firstId, secondId]
+    );
+    const from = rows.find(r => r.id === fromId);
+    if (!from || rows.length !== 2) throw new Error('Account not found');
+    if (Number(from.balance) < amount) throw new Error('Insufficient funds');
+
+    await client.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [amount, fromId]);
+    await client.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [amount, toId]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// Optimistic: version column + retry
+async function withdrawOptimistic(accountId, amount, retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const { rows: [acc] } = await pool.query(
+      'SELECT balance, version FROM accounts WHERE id = $1', [accountId]
+    );
+    if (Number(acc.balance) < amount) throw new Error('Insufficient funds');
+    const { rowCount } = await pool.query(
+      `UPDATE accounts SET balance = balance - $1, version = version + 1
+       WHERE id = $2 AND version = $3`,
+      [amount, accountId, acc.version]
+    );
+    if (rowCount === 1) return;
+  }
+  throw new Error('Concurrent modification, retries exhausted');
+}
+
+// Serializable needs a retry loop on 40001
+async function runSerializable(work, retries = 3) {
+  for (let attempt = 0; ; attempt++) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
+      const result = await work(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      if (err.code === '40001' && attempt < retries) continue;
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+}
+```
+
+**Evaluation Criteria:**
+- Names the anomalies and maps them to levels; knows both engines' defaults
+- Uses a single pooled client for the transaction, with ROLLBACK and release in finally
+- Prevents the race (FOR UPDATE or atomic conditional UPDATE)
+- Consistent lock ordering for deadlocks; retry on serialization failures
+
+---
+
+## 7.2 Redis
+
+### Question 56: Redis Data Structures & Caching Patterns
+**Question:** What is Redis and why is it fast? Explain its core data structures and when to use each. Compare cache-aside, write-through, and write-behind. How do you handle cache invalidation, stampedes, and eviction?
+
+**Expected Answer:**
+- **Why fast:** in-memory, single-threaded command execution (no locks; I/O threads optional since 6.0), efficient encodings. Every command is atomic; a slow command (`KEYS *`, big `SMEMBERS`) blocks everyone, so use `SCAN`.
+- **Structures:** String (cache values, counters `INCR`), Hash (objects/fields), List (queues), Set (unique members, tags), Sorted Set (leaderboards, time-ordered, sliding-window rate limits), Streams (event log with consumer groups), plus bitmaps, HyperLogLog, geo.
+- **Persistence:** RDB snapshots vs AOF log (or both). It's a cache first; don't treat it as the source of truth unless configured for it.
+- **Patterns:**
+  - Cache-aside (lazy): app reads cache → on miss, reads DB and fills cache. Most common.
+  - Write-through: write cache and DB together; cache is always fresh, but writes are slower.
+  - Write-behind: write cache, flush to DB asynchronously; fast, but data loss risk.
+- **Invalidation:** TTL on every key; delete (not update) the key on writes; versioned keys.
+- **Stampede:** lock with `SET key NX PX` so only one caller rebuilds, plus stale-while-revalidate or TTL jitter.
+- **Eviction:** `maxmemory` + policy (`allkeys-lru`, `allkeys-lfu`, `volatile-ttl`, `noeviction`).
+- **Scaling:** replicas + Sentinel for HA; Redis Cluster shards 16384 hash slots (multi-key ops need the same slot, via `{hashtag}`).
+
+**Expected Solution:**
+```javascript
+const Redis = require('ioredis');
+const redis = new Redis(process.env.REDIS_URL);
+
+// 1. Cache-aside
+async function getOrSet(key, ttlSeconds, fetchFn) {
+  const cached = await redis.get(key);
+  if (cached !== null) return JSON.parse(cached);
+  const value = await fetchFn();
+  const jitter = Math.floor(Math.random() * 30); // spread expirations
+  await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds + jitter);
+  return value;
+}
+// usage: getOrSet(`product:${id}`, 300, () => db.findProduct(id))
+// on product update: await redis.del(`product:${id}`)
+
+// 2. Stampede protection with a short lock
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function getOrSetLocked(key, ttlSeconds, fetchFn, waitMs = 50, maxWaits = 40) {
+  for (let i = 0; i < maxWaits; i++) {
+    const cached = await redis.get(key);
+    if (cached !== null) return JSON.parse(cached);
+
+    const lockKey = `lock:${key}`;
+    const gotLock = await redis.set(lockKey, '1', 'PX', 5000, 'NX');
+    if (gotLock) {
+      try {
+        const value = await fetchFn();
+        await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+        return value;
+      } finally {
+        await redis.del(lockKey);
+      }
+    }
+    await sleep(waitMs); // someone else is rebuilding
+  }
+  return fetchFn(); // fallback: don't fail the request
+}
+
+// 3. Fixed-window rate limiter
+async function isAllowed(userId, limit = 100, windowSec = 60) {
+  const window = Math.floor(Date.now() / 1000 / windowSec);
+  const key = `rate:${userId}:${window}`;
+  const [[, count]] = await redis.multi().incr(key).expire(key, windowSec).exec();
+  return count <= limit;
+}
+
+// 4. Leaderboard
+async function addScore(userId, points) {
+  await redis.zincrby('leaderboard', points, userId);
+}
+async function top10() {
+  const flat = await redis.zrevrange('leaderboard', 0, 9, 'WITHSCORES');
+  const result = [];
+  for (let i = 0; i < flat.length; i += 2) {
+    result.push({ userId: flat[i], score: Number(flat[i + 1]) });
+  }
+  return result;
+}
+```
+
+**Evaluation Criteria:**
+- Picks the right structure per use case (sorted set for ranking, INCR for counters)
+- Cache-aside with TTL, and invalidates by delete on write
+- Knows stampede mitigations (lock, jitter, stale-while-revalidate)
+- Knows eviction policies and that blocking commands hurt everyone
+- Atomicity: MULTI/Lua for multi-step operations
+
+---
+
+*End of Section 7: Databases — PostgreSQL, MySQL & Redis*

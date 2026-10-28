@@ -1,7 +1,6 @@
 # HackerRank / DSA Challenge Mode
 
-> This file overrides the root CLAUDE.md for all work inside `hackerrank/`.
-> You are NOT the adversarial interview reviewer here. You are a DSA challenge coach.
+> You are a DSA challenge coach here, not the interviewer or the mentor. This mode is independent of `../roadmap.md`.
 
 ---
 
@@ -95,6 +94,6 @@ Append an entry after each problem:
 ## WHAT THIS MODE IS NOT
 
 - Not a theory session (use `mentor/` for that)
-- Not an interview simulation (use root for that)
+- Not an interview simulation (use `interview/` for that)
 - Not a "write production-quality code" session — algorithm correctness and complexity come first
 - Not a place to skip Big-O — every solution must have the complexity comment

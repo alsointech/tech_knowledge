@@ -893,3 +893,40 @@ console.log('6');
 // 5. Automated security compliance checks
 // 6. Incident response automation
 ```
+
+# SECTION 7: Databases — PostgreSQL, MySQL & Redis
+
+## 7.1 Relational Engines
+
+### Question 54: PostgreSQL vs MySQL
+**Question:** Compare PostgreSQL and MySQL (InnoDB). How do they differ in MVCC, indexing options, JSON support, and replication? When would you pick each for a Node.js backend?
+**Code Challenge:**
+```javascript
+// 1. Write an "upsert" for a users table (unique email) in both PostgreSQL and MySQL syntax
+// 2. Query a JSON column (preferences.theme = 'dark') in both engines and index it
+// 3. Return the inserted row id in both engines from Node.js (pg vs mysql2)
+```
+
+### Question 55: Transactions, Isolation Levels & Locking
+**Question:** Explain transaction isolation levels (Read Uncommitted, Read Committed, Repeatable Read, Serializable) and the anomalies each prevents. What are the defaults in PostgreSQL and MySQL? Pessimistic vs optimistic locking?
+**Code Challenge:**
+```javascript
+// Implement a money transfer between two accounts in Node.js (pg):
+// 1. Wrap it in a transaction with proper rollback and client release
+// 2. Prevent a race condition where two concurrent transfers overdraw the account
+// 3. Avoid deadlocks when two transfers run in opposite directions (A→B and B→A)
+// 4. Alternative: optimistic locking with a version column and retry
+```
+
+## 7.2 Redis
+
+### Question 56: Redis Data Structures & Caching Patterns
+**Question:** What is Redis and why is it fast? Explain its core data structures and when to use each. Compare cache-aside, write-through, and write-behind. How do you handle cache invalidation, stampedes, and eviction?
+**Code Challenge:**
+```javascript
+// Using ioredis or node-redis:
+// 1. Cache-aside wrapper getOrSet(key, ttl, fetchFn) for a product lookup
+// 2. Prevent a cache stampede when a hot key expires
+// 3. Fixed-window rate limiter: max 100 requests per user per minute (INCR + EXPIRE)
+// 4. Leaderboard: add scores and fetch the top 10 (sorted set)
+```

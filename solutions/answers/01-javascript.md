@@ -1,4 +1,4 @@
-# Section 1: JavaScript & TypeScript — Correct Answers
+# Topic 01: JavaScript — Interview Answers
 
 ---
 

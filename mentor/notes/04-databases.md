@@ -1,2 +1,2 @@
-# Databases & Data Persistence — Mastery Notes
+# Topic 04: Databases (PostgreSQL, MySQL, Redis) — Mastery Notes
 

@@ -1,31 +1,29 @@
 # tech_knowledge
 
-A personal Senior Backend Developer interview prep system powered by Claude Code. Four distinct AI modes — interviewer, mentor, and DSA coach, — each loaded by opening a specific folder.
+A personal Senior Backend Developer interview prep system powered by Claude Code. Three AI modes (interviewer, mentor, DSA coach), each chosen by the folder you launch `claude` from.
 
 ---
 
 ## Prerequisites
 
-- [Claude Code CLI](https://claude.ai/code) installed globally
+- [Claude Code CLI](https://claude.ai/code) installed
 - Node.js 18+
 
-```bash
-npm install -g @anthropic-ai/claude-code
-```
-
-No other dependencies. The repo is plain Markdown and JavaScript scratch files — nothing to `npm install`.
+No other dependencies. The repo is plain Markdown and JavaScript scratch files, so there's nothing to `npm install`.
 
 ---
 
 ## How it works
 
-Claude Code loads `CLAUDE.md` from the working directory when a conversation starts. Each subfolder has its own `CLAUDE.md` that overrides or extends the root, giving each mode a completely different persona.
+Claude Code loads the `CLAUDE.md` in the folder you launch from **and every `CLAUDE.md` in the folders above it**. Files are combined, not overridden. So the root `CLAUDE.md` holds only shared, persona-free context, and each mode's persona lives in its own subfolder:
 
-| Working directory you open | Persona Claude loads |
-|---|---|
-| `tech_knowledge/` | Adversarial interviewer — devil's advocate, strict scoring |
-| `tech_knowledge/mentor/` | Supportive senior coach — explains concepts, Socratic method |
-| `tech_knowledge/hackerrank/` | DSA challenge coach — complexity-first, hint ladder |
+| Launch `claude` from | Persona |
+| --- | --- |
+| `tech_knowledge/interview/` | Adversarial interviewer: devil's advocate, scored 0-10 |
+| `tech_knowledge/mentor/` | Supportive senior coach: explains concepts, Socratic method |
+| `tech_knowledge/hackerrank/` | DSA challenge coach: complexity-first, hint ladder |
+
+Run `/memory` inside a session to see which CLAUDE.md files were loaded. Start a new session (or a new terminal) when switching modes.
 
 ---
 
@@ -33,121 +31,110 @@ Claude Code loads `CLAUDE.md` from the working directory when a conversation sta
 
 ```
 tech_knowledge/
-├── CLAUDE.md                    # Root: interviewer persona + session-start algorithm
-├── questions-index.md           # Question bank (53 questions, 9 topics)
-├── questions.md                 # Full rubrics and reference solutions (internal)
-├── index.js                     # Your coding scratch file for interview questions
+├── CLAUDE.md                    # Shared context only (no persona)
+├── roadmap.md                   # Topic order + question mapping (linear)
+├── questions-index.md           # Question bank (Q1–Q56)
+├── questions.md                 # Rubrics and reference solutions (read per question, never whole)
+│
+├── interview/
+│   ├── CLAUDE.md                # Interviewer persona
+│   └── index.js                 # Your scratch file for interview code challenges
 │
 ├── mentor/
-│   ├── CLAUDE.md                # Mentor persona (overrides root)
-│   ├── index.js                 # Your coding scratch file for mentor sessions
-│   └── notes/
-│       ├── 01-javascript.md     # Mastery notes per topic (filled as you learn)
-│       ├── 02-react.md
-│       └── ...09-ai.md
+│   ├── CLAUDE.md                # Mentor persona
+│   ├── index.js                 # Your scratch file for mentor sessions
+│   └── notes/{NN-topic}.md      # Mastery notes per roadmap topic
 │
 ├── hackerrank/
-│   ├── CLAUDE.md                # DSA coach persona (overrides root)
+│   ├── CLAUDE.md                # DSA coach persona
 │   ├── index.js                 # Paste current problem and your attempt here
 │   ├── test.js                  # Test runner scratch
 │   ├── challenges.md            # Log of all problems attempted
-│   └── solutions/
-│       ├── easy/                # Completed solutions by difficulty
-│       ├── medium/
-│       └── hard/
+│   └── solutions/{easy,medium,hard}/
 │
 └── solutions/
-    ├── answers/
-    │   ├── 01-javascript.md     # Scored Q&A records (auto-saved on pass)
-    │   ├── 02-react.md
-    │   └── ...09-ai.md
-    ├── 01-javascript/           # Reference solution files (auto-saved on pass)
-    │   ├── q02-destructuring.js
-    │   ├── q03-template-literals.js
-    │   └── ...
-    ├── 02-react/
-    └── ...09-ai/
+    ├── answers/{NN-topic}.md    # Scored interview answers (passed and failed)
+    └── {NN-topic}/q{N}-{slug}.js
 ```
+
+`{NN-topic}` is one of `01-javascript`, `02-nodejs`, `03-typescript`, `04-databases`, `05-ai`, `06-docker-kubernetes`, `07-cicd`, `08-react`, `09-aws`.
 
 ---
 
 ## Running each mode
 
-### Interviewer (root)
+Open one VS Code terminal per mode (WSL):
 
 ```bash
-cd C:\Users\<you>\Documents\projects\tech_knowledge
-claude
+cd ~/projects/tech_knowledge/interview && claude    # interviewer
+cd ~/projects/tech_knowledge/mentor && claude       # mentor
+cd ~/projects/tech_knowledge/hackerrank && claude   # DSA drill
 ```
 
-The interviewer reads your `solutions/answers/` files at session start, computes how many questions you've answered per topic, and picks up exactly where you left off in the round-robin cycle (2 questions per topic before rotating).
+Use the terminal for this. The Claude Code chat panel in VS Code starts in the workspace folder (`tech_knowledge/`), which has no persona. To use the panel instead, open the mode's subfolder as the VS Code workspace.
 
-### Mentor
+Claude doesn't speak first. After launching, send a first message such as `start` to make it read your progress and ask the next question.
 
-```bash
-cd C:\Users\<you>\Documents\projects\tech_knowledge\mentor
-claude
-```
+### What to type
 
-Explains concepts, uses Socratic questioning, no numeric scoring. Write your practice code in `mentor/index.js`.
-
-### HackerRank / DSA drill
-
-```bash
-cd C:\Users\<you>\Documents\projects\tech_knowledge\hackerrank
-claude
-```
-
-Paste a problem into `hackerrank/index.js` and ask Claude to coach you through it. Every solution requires a complexity comment. Completed solutions are saved to `hackerrank/solutions/{difficulty}/`.
+| Mode | Message | What happens |
+| --- | --- | --- |
+| Interviewer | `start` | Reads `roadmap.md` + `solutions/answers/`, asks the first unanswered question |
+| Interviewer | `check` | Reads `interview/index.js` and reviews your code |
+| Interviewer | `retry Q{N}` | Re-asks a failed question; the newest entry counts |
+| Mentor | `start` | Reads `roadmap.md` + `mentor/notes/`, offers to resume where you left off |
+| Mentor | `explain {concept}` | Jumps to any concept, out of order |
+| HackerRank | paste a problem into `hackerrank/index.js`, then `check` | Coaching via the hint ladder; every solution needs a complexity comment |
 
 ---
 
-## Topic cycle
+## Roadmap (linear)
 
-The interviewer cycles through 9 topics, 2 questions at a time, in this order:
+Topics are done one at a time, in order. A topic is finished when every question mapped to it has an entry in its answers file, passed or failed. A question closes after at most 2 follow-ups, so you never get stuck; failed ones show up with **Review later** notes and can be retried. See `roadmap.md` for the question numbers.
 
 ```
-JavaScript → React → Node.js → Databases → AWS →
-Testing → Performance → Algorithms → AI → (repeat)
+Phase 1 (months 1-3): JavaScript → Node.js → TypeScript → Databases (PostgreSQL, MySQL, Redis)
+Phase 2 (months 4-6): AI → Docker + Kubernetes → CI/CD → React → AWS
 ```
 
-Progress is tracked in `solutions/answers/*.md`. Each file stores scored Q&A records. A new session always reads these files first and resumes at the correct topic and question number.
+Gaps still to write: AI (no questions), Docker/Kubernetes and CI/CD (one question each). The interviewer stops and tells you when it reaches a topic with no questions.
 
 ---
 
 ## Example: Interviewer session
 
 ```
-> claude   (from tech_knowledge/)
+> claude   (from tech_knowledge/interview/)
 
-Counts: JS=3, React=0, Node=0, DB=0, AWS=0, Testing=0, Perf=0, Algo=0, AI=0
-current_round=0, threshold=2 → JS has 3 ≥ 2, React has 0 < 2
+You: start
 
-**Topic: React — Question 1**
+**Topic 01: JavaScript — Question 4 of 15 (#4)**
 
-What are the differences between functional and class components?
-When would you still reach for a class component today?
+Explain the differences between forEach(), map(), filter(), reduce(), and find().
+When would you use each one?
 
-Code challenge: convert this class component to a functional component with hooks...
+Code challenge: write it in interview/index.js and type `check` when ready...
 ```
 
-After answering, the feedback format is:
+After you answer (and type `check` for the code), the feedback looks like:
 
 ```
-Assessment: Solid conversion — all lifecycle methods correctly mapped to useEffect.
+Assessment: Correct tasks 1-4. Grouping works but mutates the accumulator
+  with a push inside reduce without explaining why that's acceptable.
 
-Critical Issues: Cleanup function missing from useEffect. componentWillUnmount
-  sets document.title = 'App' but your return () => {} is empty.
+Critical Issues: Task 2 uses filter + indexOf for uniqueness — O(n²).
 
-Knowledge Gaps: useEffect dependency array — you added [name] correctly but
-  didn't explain why omitting it would cause an infinite loop.
+Knowledge Gaps: Set-based dedupe; Object.groupBy (ES2024).
 
-Score: 7/10 — Clean code, missed the cleanup detail. Senior level is 8+.
+Follow-up: Why does forEach ignore an async callback's returned promise?
 
-Next: Moving to React Question 2.
+Score: 6/10 — Correct output, but O(n²) dedupe and a shallow explanation of
+  when to choose reduce over a loop. Senior level is 8+.
+
+Next: Waiting for your follow-up answer.
 ```
 
-Solutions are auto-saved to `solutions/answers/02-react.md` and `solutions/02-react/q01-functional-vs-class.js`.
+When the question closes (passed or failed), it's saved to `solutions/answers/01-javascript.md` as `## Q4: Array Methods`, and your code goes to `solutions/01-javascript/q04-array-methods.js`.
 
 ---
 
@@ -177,7 +164,7 @@ Mentor: Usually yes. But what if another function still holds a reference
 When the concept lands, the mentor logs it to `mentor/notes/01-javascript.md`:
 
 ```markdown
-## Closures
+## Q11: Closures
 **Concept:** Inner function retains access to outer scope variables even after outer function returns
 **Where it clicked:** makeCounter example — count persisted across calls because the returned arrow function closed over it
 **Readiness:** solid
@@ -237,10 +224,10 @@ function twoSum(nums, target) {
 ## Progress files
 
 | File | What it stores | Created by |
-|---|---|---|
-| `solutions/answers/{n}-{topic}.md` | Scored Q&A records | Interviewer on pass |
-| `solutions/{n}-{topic}/q{N}-{slug}.js` | Reference solution code | Interviewer on pass |
-| `mentor/notes/{n}-{topic}.md` | Concept mastery notes | Mentor on understanding |
+| --- | --- | --- |
+| `solutions/answers/{NN-topic}.md` | Scored Q&A records (passed + failed) | Interviewer when a question closes |
+| `solutions/{NN-topic}/q{N}-{slug}.js` | Your solution code | Interviewer when a question closes |
+| `mentor/notes/{NN-topic}.md` | Concept mastery notes | Mentor on understanding |
 | `hackerrank/challenges.md` | Problem log with pattern and status | DSA coach on completion |
 
 All files persist across sessions. They are your long-term progress record regardless of which conversation created them.
@@ -249,6 +236,8 @@ All files persist across sessions. They are your long-term progress record regar
 
 ## Practical session workflow
 
-1. **Don't understand a concept** → open `mentor/`, new conversation → `"explain closures"`
-2. **Ready to test yourself** → open `tech_knowledge/`, new conversation → picks up where you left off
-3. **Want to drill an algorithm** → open `hackerrank/`, new conversation → paste problem into `index.js`
+1. **Don't understand a concept** → `cd mentor && claude` → `explain closures`
+2. **Ready to test yourself** → `cd interview && claude` → `start` (picks up where you left off)
+3. **Want to drill an algorithm** → `cd hackerrank && claude` → paste the problem into `index.js`, then `check`
+
+Don't switch modes inside a running session: exit (`/exit`) and launch `claude` again from the other folder, so the old persona doesn't carry over.
